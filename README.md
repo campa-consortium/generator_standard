@@ -19,3 +19,20 @@ This repository is an effort to standardize the interface of the **generators** 
     - `optimas`: [here](https://github.com/optimas-org/optimas/blob/main/optimas/generators/base.py#L27) is the base class for all generators. It implements the methods `ask` (i.e. make recommendations) and `tell` (i.e. receive data).
 
 # Standardization
+
+Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) will be a Python class that defines the following methods:
+
+- **Constructor:**
+
+  The arguments of the constructor will be different for each generator, to accomodate the different options that each type of generator has.
+
+- `ask()`:
+
+  Returns set of points in the input space, to be evaluated next.
+  *TBD: how many points? Which (array) format for the returned data?*
+
+
+- `tell( X )`:
+
+  Feeds data (past evaluations) to the generator
+  *TBD: which (array) format for X?*

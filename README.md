@@ -27,10 +27,17 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
   The constructor will include variable positional and keyword arguments to
   accommodate the different options that each type of generator has.
 
-- `ask()`:
+- `ask(num_points: Optional[int] = None) -> points)`:
 
   Returns set of points in the input space, to be evaluated next.
-  *TBD: how many points? Which (array) format for the returned data?*
+
+  - When `num_points` is not passed: the generator decides how many points to return.
+    Different generators will return different number of points, by default. For instance, the simplex would return 1 or 3 points. A genetic algorithm could return the whole population. Batched Bayesian optimization would return the batch size (i.e., number of points that can be processed in parallel), which would be specified in the constructor.
+
+  - When it is passed: the generator should return exactly this number of points, or raise a error (if it is unable to).
+    *Note:* If the user is flexible about the number of points, it should simply not pass `num_points`.
+
+  *TBD: Which (array) format for the returned data?*
 
 
 - `tell( X )`:

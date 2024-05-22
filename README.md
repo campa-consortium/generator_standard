@@ -24,7 +24,8 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
 
 - **Constructor:**
 
-  The arguments of the constructor will be different for each generator, to accomodate the different options that each type of generator has.
+  The constructor will include variable positional and keyword arguments to
+  accommodate the different options that each type of generator has.
 
 - `ask()`:
 

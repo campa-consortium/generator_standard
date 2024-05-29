@@ -27,9 +27,9 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
   The constructor will include variable positional and keyword arguments to
   accommodate the different options that each type of generator has.
 
-- `ask(num_points: Optional[int] = None) -> List[dict])`:
+- `ask(num_points: Optional[int] = None) -> List[Dict])`:
 
-  Returns set of points in the input space, to be evaluated next.
+  Returns set of points in the input space, to be evaluated next. (Each element of the list is a separate point. Keys of the dictionary correspond to the name of each input variable.)
 
   - When `num_points` is not passed: the generator decides how many points to return.
     Different generators will return different number of points, by default. For instance, the simplex would return 1 or 3 points. A genetic algorithm could return the whole population. Batched Bayesian optimization would return the batch size (i.e., number of points that can be processed in parallel), which would be specified in the constructor.
@@ -42,4 +42,4 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
 
 - `tell( points: List[Dict] )`:
 
-  Feeds data (past evaluations) to the generator.
+  Feeds data (past evaluations) to the generator. (Each element of the list is a separate point. Keys of the dictionary correspond to the name of each input and output variable.)

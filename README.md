@@ -27,7 +27,7 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
   The constructor will include variable positional and keyword arguments to
   accommodate the different options that each type of generator has.
 
-- `ask(num_points: Optional[int] = None) -> points)`:
+- `ask(num_points: Optional[int] = None) -> List[dict])`:
 
   Returns set of points in the input space, to be evaluated next.
 
@@ -40,7 +40,6 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
   *TBD: Which (array) format for the returned data?*
 
 
-- `tell( X )`:
+- `tell( points: List[Dict] )`:
 
-  Feeds data (past evaluations) to the generator
-  *TBD: which (array) format for X?*
+  Feeds data (past evaluations) to the generator.

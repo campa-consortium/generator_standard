@@ -52,6 +52,6 @@ class Generator(ABC):
         
         .. code-block:: python
         
-            >>> results = [{"f": 1}, {"f": 4}, {"f": 9}]
+            >>> results = [{"x": 0.5, "y": 1.5, "f": 1}, {"x": 2, "y": 3, "f": 4}]
             >>> my_generator.tell(results)
         """

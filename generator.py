@@ -35,7 +35,7 @@ class Generator(ABC):
         """
 
     @abstractmethod
-    def ask(self, num_points: Optional[int], *args, **kwargs) -> List[dict]:
+    def ask(self, num_points: Optional[int]) -> List[dict]:
         """
         Request the next set of points to evaluate.
 
@@ -46,7 +46,7 @@ class Generator(ABC):
             [{"x": 1, "y": 1}, {"x": 2, "y": 2}, {"x": 3, "y": 3}]
         """
 
-    def tell(self, results: List[dict], *args, **kwargs) -> None:
+    def tell(self, results: List[dict]) -> None:
         """
         Send the results of evaluations to the generator.
         

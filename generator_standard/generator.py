@@ -3,8 +3,6 @@ from typing import Iterable, Optional, List
 
 class Generator(ABC):
     """
-    v 0.1
-
     Tentative ask/tell generator interface
 
     .. code-block:: python

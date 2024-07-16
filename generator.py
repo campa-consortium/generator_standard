@@ -46,6 +46,17 @@ class Generator(ABC):
             [{"x": 1, "y": 1}, {"x": 2, "y": 2}, {"x": 3, "y": 3}]
         """
 
+    def ask_updates(self) -> List[dict]:
+        """
+        Request any adjustments to previous points.
+
+        .. code-block:: python
+
+            >>> points = my_generator.ask_updates()
+            >>> print(points)
+            [{"x": 1, "y": 1, "id": 1, "cancel": True}]
+        """
+
     def tell(self, results: List[dict]) -> None:
         """
         Send the results of evaluations to the generator.

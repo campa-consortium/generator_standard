@@ -27,19 +27,35 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
   The constructor will include variable positional and keyword arguments to
   accommodate the different options that each type of generator has.
 
+**Methods:**
+
 - `ask(num_points: Optional[int] = None) -> List[Dict])`:
 
-  Returns set of points in the input space, to be evaluated next. (Each element of the list is a separate point. Keys of the dictionary correspond to the name of each input variable.)
+  Returns set of points in the input space, to be evaluated next. 
+    - Each element of the list is a separate point. 
+    - Dictionary keys correspond to names of each input variable.
+    - All dictionaries should contain the same keys
 
   - When `num_points` is not passed: the generator decides how many points to return.
     Different generators will return different number of points, by default. For instance, the simplex would return 1 or 3 points. A genetic algorithm could return the whole population. Batched Bayesian optimization would return the batch size (i.e., number of points that can be processed in parallel), which would be specified in the constructor.
 
-  - When it is passed: the generator should return exactly this number of points, or raise a error (if it is unable to).
+  - When `num_points` is passed: the generator should return exactly this number of points, or raise a error (if it is unable to).
     *Note:* If the user is flexible about the number of points, it should simply not pass `num_points`.
 
-  *TBD: Which (array) format for the returned data?*
+- `tell(points: List[Dict])`:
 
+  - Feeds data (past evaluations) to the generator. Oftentimes these dictionaries will contain the same keys
+    as those returned by `ask()` plus any objective keys+values.
 
-- `tell( points: List[Dict] )`:
+- `final_tell(points: Optional[List[Dict]] = None) -> Optional[List[Dict]]`:
 
-  Feeds data (past evaluations) to the generator. (Each element of the list is a separate point. Keys of the dictionary correspond to the name of each input and output variable.)
+  *Optionally* send any last set of results to the generator, instruct it to
+    clean up, and *optionally* retrieve a final list of evaluations and/or the generator's
+    history.
+
+  - For example, generators may need to do a final update of estimate/mean
+    values, dump a model, or close down background processes
+    upon being informed of any final values at the end of a workflow.
+
+  - This will be called only once, and there's no guarantee that additional `asks/tell`s to the generator
+    will work after `final_tell` has been called.

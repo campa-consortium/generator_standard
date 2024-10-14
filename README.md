@@ -23,17 +23,21 @@ This repository is an effort to standardize the interface of the **generators** 
 Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) will be a Python class that defines the following methods:
 
 - **Constructor:**
-  `__init__(self, variables: Dict[str,List[float]], objectives: Dict[str,str], *args, **kwargs)`:
+  `__init__(self, variables: Dict[str,List[Any]], objectives: Dict[str,str], *args, **kwargs)`:
 
   The contructor has two mandatory arguments:
 
-  - `objectives` is a dictionary that lists the objectives to be optimized for. Each objective is a floating point number (objectives are scalars).
-    - The keys of this dictionary are the names of the objective. (The same names have to be used in the dictionaries passed to `tell`.)
-    - The values can either be `'MINIMIZE'` or `'MAXIMIZE'` to indicate whether the objective is to be maximized or minimized.
+  - `variables` is a dictionary that lists the quantities that the generator can vary in order to optimize (i.e. either maximize or minimize) or explore/sample the objectives.
+    - The **keys** of this dictionary are the names of the variables. (The same names have to be used in the dictionaries passed to `tell`, and are used in the dictionaries returned by `tell`.)
+    - Possible configurations for dictionary **values** include:
+      1. Lists of two elements, specifying the range of a variable, **OR:**
+      2. Objects or instructions necessary to sample that key. e.g. a random stream, a list of filepaths, *another* generator.
 
-  - `variables` is a dictionary that lists the quantities that the generator can vary in order to optimize (i.e. either maximize or minimize) the objectives. Each variable is a floating point number (variables are scalars).
-    - The keys of this dictionary are the names of the variables. (The same names have to be used in the dictionaries passed to `tell`, and are used in the dictionaries returned by `tell`.)
-    - The values are lists of two elements that specify the range of each variable.
+  - `objectives` is a dictionary that lists the objectives to be optimized for. Most objectives are floating-point numbers/scalars.
+    - The **keys** of this dictionary are the names of the objective. (The same names have to be used in the dictionaries passed to `tell`.)
+    - The **values** can be:
+      1.  `"MINIMIZE"` or `"MAXIMIZE"` to indicate whether the objective is to be minimized or maximized.
+      2.  `"EXPLORE"`, indicating no optimization goal.
 
   The constructor will also include variable positional and keyword arguments to
   accommodate the different options that each type of generator has.
@@ -41,7 +45,12 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
   Examples:
 
     ```python
-    >>> generator = NelderMead( variables={"x": [-5.0, 5.0], "y": [-3.0, 2.0]}, objectives={"f": "MAXIMIZE"})
+    >>> generator = NelderMead(variables={"x": [-5.0, 5.0], "y": [-3.0, 2.0]}, objectives={"f": "MAXIMIZE"})
+    ```
+
+    ```python
+    >>> generator = MDParamProducer(variables = {"pdb_file": ["./config_a.yml", "./config_b.yml"]},
+                                    objectives={"energy": "EXPLORE", "output_path": "EXPLORE"})
     ```
 
 - `ask(num_points: Optional[int] = None) -> List[Dict]`:

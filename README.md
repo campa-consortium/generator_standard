@@ -81,6 +81,7 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
   [{"x": 1, "y": 1, "f": 2}]
   >>> generator.tell(point)
   ```
+
 - `final_tell(points: Optional[List[Dict]] = None) -> Optional[List[Dict]]`:
 
   *Optionally* send any last set of results to the generator, instruct it to
@@ -88,8 +89,26 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
   history.
 
   - For example, generators may need to do a final update of estimate/mean
-    values, dump a model, or close down background processes
+    values, dump a model, or close down background tasks
     upon being informed of any final values at the end of a workflow.
 
   - This will be called only once, and there's no guarantee that additional `asks/tell`s to the generator
     will work after `final_tell` has been called.
+
+  Examples:
+
+  ```python
+  >>> point
+  [{"f0": 2, "f1": 4}]
+  >>> result = generator.final_tell(point)
+  >>> result
+  [{"fm": 3}]
+  >>> generator.ask(2)
+  []
+  ```
+
+  ```python
+  >>> background_gen.final_tell()
+  [0] background_gen.process (INFO): Closing connections
+  ```
+

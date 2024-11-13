@@ -47,7 +47,10 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
 - `ask(num_points: Optional[int] = None) -> List[Dict]`:
 
   Returns set of points in the input space, to be evaluated next. Each element of the list is a separate point.
-  Keys of the dictionary include the name of each variable specified in the constructor. Values of the dictionaries are **scalars**.
+  Keys of the dictionary include the name of each input variable specified in the constructor. Values of the dictionaries are **scalars**.
+
+  In addition, some generators can generate a unique identification number for each point that they generate. In that case, this identification number appears in the dictionary under the key `"_id"`.
+  When a generator produces an identification number, it is important that the identification number is included in the corresponding dictionary passed to this generator in `tell` (under the same key: `"_id"`).
 
   - When `num_points` is not passed: the generator decides how many points to return.
     Different generators will return different number of points, by default. For instance, the simplex would return 1 or 3 points. A genetic algorithm could return the whole population. Batched Bayesian optimization would return the batch size (i.e., number of points that can be processed in parallel), which would be specified in the constructor.

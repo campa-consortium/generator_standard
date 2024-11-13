@@ -23,15 +23,31 @@ This repository is an effort to standardize the interface of the **generators** 
 Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) will be a Python class that defines the following methods:
 
 - **Constructor:**
-  `__init__(self, *args, **kwargs)`:
+  `__init__(self, variables: Dict[str,List[float]], objectives: Dict[str,str], *args, **kwargs)`:
 
-  The constructor will include variable positional and keyword arguments to
+  The contructor has two mandatory arguments:
+
+  - `objectives` is a dictionary that lists the objectives to be optimized for. Each objective is a floating point number (objectives are scalars).
+    - The keys of this dictionary are the names of the objective. (The same names have to be used in the dictionaries passed to `tell`.)
+    - The values can either be `'MINIMIZE'` or `'MAXIMIZE'` to indicate whether the objective is to be maximized or minimized.
+
+  - `variables` is a dictionary that lists the quantities that the generator can vary in order to optimize (i.e. either maximize or minimize) the objectives. Each variable is a floating point number (variables are scalars).
+    - The keys of this dictionary are the names of the variables. (The same names have to be used in the dictionaries passed to `tell`, and are used in the dictionaries returned by `tell`.)
+    - The values are lists of two elements that specify the range of each variable.
+
+  The constructor will also include variable positional and keyword arguments to
   accommodate the different options that each type of generator has.
+
+  Examples:
+
+    ```python
+    >>> generator = NelderMead( variables={"x": [-5.0, 5.0], "y": [-3.0, 2.0]}, objectives={"f": "MAXIMIZE"})
+    ```
 
 - `ask(num_points: Optional[int] = None) -> List[Dict]`:
 
   Returns set of points in the input space, to be evaluated next. Each element of the list is a separate point.
-  Keys of the dictionary include the name of each input variable.
+  Keys of the dictionary include the name of each input variable specified in the constructor. Values of the dictionaries are **scalars**.
 
   In addition, some generators can generate a unique identification number for each point that they generate. In that case, this identification number appears in the dictionary under the key `"_id"`.
   When a generator produces an identification number, it is important that the identification number is included in the corresponding dictionary passed to this generator in `tell` (under the same key: `"_id"`).
@@ -53,9 +69,9 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
     [{"x": 1.2, "y": 0.8}, {"x": -0.2, "y": 0.4}, {"x": 4.3, "y": -0.1}]
     ```
 
-- `tell(points: List[Dict])`:
+- `tell(points: List[Dict[str,Any]])`:
 
-  Feeds data (past evaluations) to the generator. Each element of the list is a separate point. Keys of the dictionary correspond to the name of each input and output variable.
+  Feeds data (past evaluations) to the generator. Each element of the list is a separate point. Keys of the dictionary must include to the name of each variable and objective specified in the contructor.
 
   Example:
 

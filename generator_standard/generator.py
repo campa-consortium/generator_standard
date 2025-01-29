@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Iterable, Optional, List
-
+from .vocs import VOCS
 class Generator(ABC):
     """
     Tentative ask/tell generator interface
@@ -22,14 +22,23 @@ class Generator(ABC):
     """
 
     @abstractmethod
-    def __init__(self, *args, **kwargs):
+    def __init__(self, vocs: VOCS, *args, **kwargs):
         """
         Initialize the Generator object on the user-side. Constants, class-attributes,
         and preparation goes here.
 
         .. code-block:: python
 
-            >>> my_generator = MyGenerator(my_parameter, my_keyword=10)
+            >>> my_generator = MyGenerator(vocs, my_keyword=10)
+        """
+        self._validate_vocs(vocs)
+
+    @abstractmethod
+    def _validate_vocs(self, vocs) -> None:
+        """
+        Validate if the vocs object is compatable with the current generator. Should
+        raise a ValueError if the vocs object is not compatable with the generator
+        object
         """
 
     @abstractmethod

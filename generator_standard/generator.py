@@ -53,3 +53,12 @@ class Generator(ABC):
             >>> results = [{"x": 0.5, "y": 1.5, "f": 1}, {"x": 2, "y": 3, "f": 4}]
             >>> my_generator.tell(results)
         """
+
+    def finalize(self) -> None:
+        """
+        Perform any work required to close down the generator.
+
+        .. code-block:: python
+
+            >>> my_generator.finalize()
+        """

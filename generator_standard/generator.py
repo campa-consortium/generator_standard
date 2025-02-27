@@ -3,7 +3,7 @@ from typing import Iterable, Optional, List
 
 class Generator(ABC):
     """
-    Tentative ask/tell generator interface
+    Tentative suggest/ingest generator interface
 
     .. code-block:: python
 
@@ -11,10 +11,10 @@ class Generator(ABC):
             def __init__(self, my_parameter, my_keyword=None):
                 self.model = init_model(my_parameter, my_keyword)
 
-            def ask(self, num_points):
+            def suggest(self, num_points):
                 return self.model.create_points(num_points)
 
-            def tell(self, results):
+            def ingest(self, results):
                 self.model.update_model(results)
 
 
@@ -33,23 +33,32 @@ class Generator(ABC):
         """
 
     @abstractmethod
-    def ask(self, num_points: Optional[int]) -> List[dict]:
+    def suggest(self, num_points: Optional[int]) -> List[dict]:
         """
         Request the next set of points to evaluate.
 
         .. code-block:: python
 
-            >>> points = my_generator.ask(3)
+            >>> points = my_generator.suggest(3)
             >>> print(points)
             [{"x": 1, "y": 1}, {"x": 2, "y": 2}, {"x": 3, "y": 3}]
         """
 
-    def tell(self, results: List[dict]) -> None:
+    def ingest(self, results: List[dict]) -> None:
         """
         Send the results of evaluations to the generator.
-        
+
         .. code-block:: python
-        
+
             >>> results = [{"x": 0.5, "y": 1.5, "f": 1}, {"x": 2, "y": 3, "f": 4}]
-            >>> my_generator.tell(results)
+            >>> my_generator.ingest(results)
+        """
+
+    def finalize(self) -> None:
+        """
+        Perform any work required to close down the generator.
+
+        .. code-block:: python
+
+            >>> my_generator.finalize()
         """

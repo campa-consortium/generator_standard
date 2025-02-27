@@ -85,3 +85,13 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
   >>> generator.ingest(point)
   ```
 
+- `finalize()`:
+
+  **Optional**. Performs any work required to close down the generator. Many generators may need to close down background processes, open files, databases,
+  or dump data to disk. This is similar to calling `.close()` on an open file.
+
+  Example:
+
+  ```python
+  >>> generator.finalize()
+  ```

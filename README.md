@@ -23,7 +23,7 @@ This repository is an effort to standardize the interface of the **generators** 
 Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) will be a Python class that defines the following methods:
 
 - **Constructor:**
-  `__init__(self, variables: Dict[str,List[float]], objectives: Dict[str,str], *args, **kwargs)`:
+  `__init__(self, variables: dict[str,list[float]], objectives: dict[str,str], *args, **kwargs)`:
 
   The contructor has two mandatory arguments:
 
@@ -44,7 +44,7 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
     >>> generator = NelderMead( variables={"x": [-5.0, 5.0], "y": [-3.0, 2.0]}, objectives={"f": "MAXIMIZE"})
     ```
 
-- `ask(num_points: Optional[int] = None) -> List[Dict]`:
+- `ask(num_points: int | None = None) -> list[dict]`:
 
   Returns set of points in the input space, to be evaluated next. Each element of the list is a separate point.
   Keys of the dictionary include the name of each input variable specified in the constructor. Values of the dictionaries are **scalars**.
@@ -69,7 +69,7 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
     [{"x": 1.2, "y": 0.8}, {"x": -0.2, "y": 0.4}, {"x": 4.3, "y": -0.1}]
     ```
 
-- `tell(points: List[Dict[str,Any]])`:
+- `tell(points: list[dict])`:
 
   Feeds data (past evaluations) to the generator. Each element of the list is a separate point. Keys of the dictionary must include to the name of each variable and objective specified in the contructor.
 

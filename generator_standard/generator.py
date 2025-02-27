@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, Optional, List
 
 class Generator(ABC):
     """
@@ -33,7 +32,7 @@ class Generator(ABC):
         """
 
     @abstractmethod
-    def suggest(self, num_points: Optional[int]) -> List[dict]:
+    def suggest(self, num_points: int | None) -> list[dict]:
         """
         Request the next set of points to evaluate.
 
@@ -44,7 +43,7 @@ class Generator(ABC):
             [{"x": 1, "y": 1}, {"x": 2, "y": 2}, {"x": 3, "y": 3}]
         """
 
-    def ingest(self, results: List[dict]) -> None:
+    def ingest(self, results: list[dict]) -> None:
         """
         Send the results of evaluations to the generator.
 

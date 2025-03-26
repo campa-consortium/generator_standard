@@ -35,18 +35,6 @@ class ConstraintEnum(str, Enum):
 class BaseVariable(BaseModel):
     default_value: Optional[float] = None
 
-
-class DiscreteVariable(BaseVariable):
-    values: Tuple[float, ...]
-
-    @model_validator(mode="after")
-    def validate_values(self):
-        # check to make sure all values are unqiue
-        if not len(self.values) == len(set(self.values)):
-            raise ValueError("value tuple must have all unique elements")
-        return self
-
-
 class ContinuousVariable(BaseVariable):
     domain: conlist(float, min_length=2, max_length=2)
 
@@ -59,11 +47,6 @@ class ContinuousVariable(BaseVariable):
                 f"condition value[1] > value[0]."
             )
         return self
-
-
-class FidelityVariable(ContinuousVariable):
-    domain: conlist(float, min_length=2, max_length=2) = [0, 1]
-
 
 class BaseConstraint(BaseModel):
     pass
@@ -94,33 +77,18 @@ CONSTRAINT_CLASSES = {
 }
 
 
-# Base Objective Model
-class BaseObjective(BaseModel):
-    pass
+class ObjectiveTypeEnum(str, Enum):
+    MINIMIZE = "MINIMIZE"
+    MAXIMIZE = "MAXIMIZE"
+    CHARACTERIZE = "CHARACTERIZE"
 
+    # Allow any case
+    @classmethod
+    def _missing_(cls, name):
+        for member in cls:
+            if member.name.lower() == name.lower():
+                return member
 
-class MinimizeObjective(BaseObjective):
-    pass
-
-
-class MaximizeObjective(BaseObjective):
-    pass
-
-
-class CharacterizeObjective(BaseObjective):
-    pass
-
-
-class VirtualObjective(BaseObjective):
-    observables: List[str]
-
-
-OBJECTIVE_CLASSES = {
-    "MINIMIZE": MinimizeObjective,
-    "MAXIMIZE": MaximizeObjective,
-    "CHARACTERIZE": CharacterizeObjective,
-    "VIRTUAL": VirtualObjective
-}
 
 
 class VOCS(BaseModel):
@@ -129,7 +97,7 @@ class VOCS(BaseModel):
     to describe optimization problems.
     """
 
-    variables: Dict[str, Union[ContinuousVariable, DiscreteVariable, FidelityVariable]]
+    variables: Dict[str, ContinuousVariable]
     constraints: Dict[
         str, Union[LessThanConstraint, GreaterThanConstraint, BoundsConstraint]
     ] = Field(
@@ -138,8 +106,7 @@ class VOCS(BaseModel):
     )
     objectives: Dict[
         str,
-        Union[
-            MinimizeObjective, MaximizeObjective, CharacterizeObjective, VirtualObjective]
+        ObjectiveTypeEnum
     ] = Field(
         default={}, description="objective names with type of objective"
     )
@@ -162,12 +129,8 @@ class VOCS(BaseModel):
             if isinstance(val, BaseVariable):
                 v[name] = val
             elif isinstance(val, list):
-                # if the length of the list is 2 we assume a continuous variable,
-                # otherwise it's a discrete variable
-                if len(val) == 2:
-                    v[name] = ContinuousVariable(domain=val)
-                else:
-                    v[name] = DiscreteVariable(values=val)
+                if len(val) != 2:
+                    raise ValueError(f"variable {val} is not correctly specified, must have 2 elements")
             elif isinstance(val, dict):
                 variable_type = val.pop("type")
                 try:

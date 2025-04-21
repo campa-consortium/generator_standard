@@ -18,22 +18,24 @@ This repository is an effort to standardize the interface of the **generators** 
     - `Xopt`: [here](https://github.com/ChristopherMayes/Xopt/blob/main/xopt/generators/scipy/neldermead.py#L64) is the generator for the Nelder-Mead method. All Xopt generators implement the methods `generate` (i.e. make recommendations) and `add_data` (i.e. receive data).
     - `optimas`: [here](https://github.com/optimas-org/optimas/blob/main/optimas/generators/base.py#L27) is the base class for all generators. It implements the methods `suggest` (i.e. make recommendations) and `ingest` (i.e. receive data).
 
+- **Variables, Objectives, Constraints (VOCs):**
+  A VOCS is an object that specifies the name and types of the following components of the optimization problem that will be used by the generator:
+  - `variables`: defines the names and types of input parameters that will be passed to an objective function need to be chosen in order to solve the optimization problem
+  - `objectives`: defines the names and types of function outputs that will be optimized or characterized
+  - `constraints`: defines the names and types of function outputs that will used as constraints that need to be satisfied for a valid solution to the optimization problem.
+  - `constants`: defines the names and values of constant values that will be passed alongside `variables` to the objective function
+  - `observables`: defines the names of values that will be tracked by the generator alongside the `objectives` and `constraints`
+
 # Standardization
 
 Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) will be a Python class that defines the following methods:
 
 - **Constructor:**
-  `__init__(self, variables: dict[str,list[float]], objectives: dict[str,str], *args, **kwargs)`:
+  `__init__(self, vocs: VOCS, *args, **kwargs)`:
 
-  The contructor has two mandatory arguments:
+  The contructor has one mandatory argument:
 
-  - `objectives` is a dictionary that lists the objectives to be optimized for. Each objective is a floating point number (objectives are scalars).
-    - The keys of this dictionary are the names of the objective. (The same names have to be used in the dictionaries passed to `ingest`.)
-    - The values can either be `'MINIMIZE'` or `'MAXIMIZE'` to indicate whether the objective is to be maximized or minimized.
-
-  - `variables` is a dictionary that lists the quantities that the generator can vary in order to optimize (i.e. either maximize or minimize) the objectives. Each variable is a floating point number (variables are scalars).
-    - The keys of this dictionary are the names of the variables. (The same names have to be used in the dictionaries passed to `ingest`, and are used in the dictionaries returned by `ingest`.)
-    - The values are lists of two elements that specify the range of each variable.
+  - `VOCS` object that defines the input and output names used inside the generator
 
   The constructor will also include variable positional and keyword arguments to
   accommodate the different options that each type of generator has.
@@ -41,7 +43,7 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
   Examples:
 
     ```python
-    >>> generator = NelderMead( variables={"x": [-5.0, 5.0], "y": [-3.0, 2.0]}, objectives={"f": "MAXIMIZE"})
+    >>> generator = NelderMead(VOCS(variables={"x": [-5.0, 5.0], "y": [-3.0, 2.0]}, objectives={"f": "MAXIMIZE"}))
     ```
 
 - `suggest(num_points: int | None = None) -> list[dict]`:

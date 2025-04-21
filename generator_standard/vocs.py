@@ -1,39 +1,12 @@
 from enum import Enum
-from typing import Any, Dict, List, Union, Optional, Tuple
+from typing import Any, List
 
 from pydantic import ConfigDict, conlist, Field, field_validator, model_validator, \
     BaseModel
 
 
-# Enums for objectives and constraints
-class ObjectiveEnum(str, Enum):
-    MINIMIZE = "MINIMIZE"
-    MAXIMIZE = "MAXIMIZE"
-    EXPLORE = "EXPLORE"
-
-    # Allow any case
-    @classmethod
-    def _missing_(cls, name):
-        for member in cls:
-            if member.name.lower() == name.lower():
-                return member
-
-
-class ConstraintEnum(str, Enum):
-    LESS_THAN = "LESS_THAN"
-    GREATER_THAN = "GREATER_THAN"
-
-    # Allow any case
-    @classmethod
-    def _missing_(cls, name):
-        if isinstance(name, str):
-            for member in cls:
-                if member.name.lower() == name.lower():
-                    return member
-
-
 class BaseVariable(BaseModel):
-    default_value: Optional[float] = None
+    default_value: float | None = None
 
 class ContinuousVariable(BaseVariable):
     domain: conlist(float, min_length=2, max_length=2)
@@ -76,6 +49,19 @@ CONSTRAINT_CLASSES = {
     "BOUNDS": BoundsConstraint,
 }
 
+class ConstraintTypeEnum(str, Enum):
+    LESS_THAN = "LESS_THAN"
+    GREATER_THAN = "GREATER_THAN"
+    BOUNDS = "BOUNDS"
+
+    # Allow any case
+    @classmethod
+    def _missing_(cls, name):
+        if isinstance(name, str):
+            for member in cls:
+                if member.name.lower() == name.lower():
+                    return member
+
 
 class ObjectiveTypeEnum(str, Enum):
     MINIMIZE = "MINIMIZE"
@@ -97,20 +83,20 @@ class VOCS(BaseModel):
     to describe optimization problems.
     """
 
-    variables: Dict[str, ContinuousVariable]
-    constraints: Dict[
-        str, Union[LessThanConstraint, GreaterThanConstraint, BoundsConstraint]
-    ] = Field(
-        default={},
-        description="constraint names with a list of constraint type and value",
-    )
-    objectives: Dict[
+    variables: dict[str, ContinuousVariable]
+    objectives: dict[
         str,
         ObjectiveTypeEnum
     ] = Field(
         default={}, description="objective names with type of objective"
     )
-    constants: Dict[str, Any] = Field(
+    constraints: dict[
+        str, ConstraintTypeEnum
+    ] = Field(
+        default={},
+        description="constraint names with a list of constraint type and value",
+    )
+    constants: dict[str, Any] = Field(
         default={}, description="constant names and values passed to evaluate function"
     )
     observables: List[str] = Field(
@@ -187,26 +173,15 @@ class VOCS(BaseModel):
     def validate_objectives(cls, v):
         assert isinstance(v, dict)
         for name, val in v.items():
-            if isinstance(val, BaseObjective):
+            if isinstance(val, ObjectiveTypeEnum):
                 v[name] = val
-            elif isinstance(val, dict):
-                objective_type = val.pop("type")
-                try:
-                    class_ = globals()[objective_type]
-                except KeyError:
-                    raise ValueError(f"objective type {objective_type} is not "
-                                     f"available")
-                v[name] = class_(**val)
             elif isinstance(val, str):
-                # Dynamically create the objective instance
-                if val in ["MINIMIZE", "MAXIMIZE", "CHARACTERIZE"]:
-                    v[name] = OBJECTIVE_CLASSES[val]()
-                elif val == "VIRTUAL":
-                    # TODO: handle virtual objectives
-                    pass
-                else:
+                try:
+                    v[name] = ObjectiveTypeEnum(val.upper())
+                except ValueError:
                     raise ValueError(
-                            f"Objective type '{val}' is not supported for '{name}'.")
+                        f"Objective type '{val}' is not supported for '{name}'."
+                    )
             else:
                 raise ValueError(f"objective input type {type(val)} not supported")
 

@@ -32,7 +32,7 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
     - The values can either be `'MINIMIZE'` or `'MAXIMIZE'` to indicate whether the objective is to be maximized or minimized.
 
   - `variables` is a dictionary that lists the quantities that the generator can vary in order to optimize (i.e. either maximize or minimize) the objectives. Each variable is a floating point number (variables are scalars).
-    - The keys of this dictionary are the names of the variables. (The same names have to be used in the dictionaries passed to `ingest`, and are used in the dictionaries returned by `ingest`.)
+    - The keys of this dictionary are the names of the variables. (The same names must be used in the dictionaries passed to `ingest`, and in the dictionaries returned by `suggest`.)
     - The values are lists of two elements that specify the range of each variable.
 
   The constructor will also include variable positional and keyword arguments to
@@ -55,7 +55,7 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
   - When `num_points` is not passed: the generator decides how many points to return.
     Different generators will return different number of points, by default. For instance, the simplex would return 1 or 3 points. A genetic algorithm could return the whole population. Batched Bayesian optimization would return the batch size (i.e., number of points that can be processed in parallel), which would be specified in the constructor.
 
-  - When it is passed: the generator should return exactly this number of points, or raise a error ``ValueError`` if it is unable to. If the user is flexible about the number of points, it should simply not pass `num_points`.
+  - When it is passed: the generator should return exactly this number of points, or raise a error `ValueError` if it is unable to. If the user is flexible about the number of points, they should simply not pass `num_points`.
 
   Examples:
 
@@ -71,7 +71,7 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
 
 - `ingest(points: list[dict])`:
 
-  Feeds data (past evaluations) to the generator. Each element of the list is a separate point. Keys of the dictionary must include to the name of each variable and objective specified in the contructor.
+  Feeds data (past evaluations) to the generator. Each element of the list is a separate point. Keys of the dictionary must include the name of each variable and objective specified in the constructor.
 
   Example:
 

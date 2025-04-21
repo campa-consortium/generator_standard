@@ -19,14 +19,21 @@ This repository is an effort to standardize the interface of the **generators** 
     - `optimas`: [here](https://github.com/optimas-org/optimas/blob/main/optimas/generators/base.py#L27) is the base class for all generators. It implements the methods `suggest` (i.e. make recommendations) and `ingest` (i.e. receive data).
 
 - **Variables, Objectives, Constraints (VOCs):**
-  A VOCS is an object that specifies the name and types of the following components of the optimization problem that will be used by the generator:
+
+  A VOCS is an object that specifies the name and types of components of the optimization problem that will be used by the generator. Each generator will validate that it can handle the specified set of variables, objectives, constraints, etc.
+
+
+# Standardization
+
+## VOCs
+VOCs objects specify the following fields:
   - `variables`: defines the names and types of input parameters that will be passed to an objective function need to be chosen in order to solve the optimization problem
   - `objectives`: defines the names and types of function outputs that will be optimized or characterized
   - `constraints`: defines the names and types of function outputs that will used as constraints that need to be satisfied for a valid solution to the optimization problem.
   - `constants`: defines the names and values of constant values that will be passed alongside `variables` to the objective function
   - `observables`: defines the names of values that will be tracked by the generator alongside the `objectives` and `constraints`
 
-# Standardization
+## Generators
 
 Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) will be a Python class that defines the following methods:
 
@@ -45,6 +52,10 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
     ```python
     >>> generator = NelderMead(VOCS(variables={"x": [-5.0, 5.0], "y": [-3.0, 2.0]}, objectives={"f": "MAXIMIZE"}))
     ```
+
+- `_validate_vocs(self, vocs) -> None`:
+
+  Validates the vocs passed to the generator. Raises ``ValueError`` if the generator cannot use the VOCs passed to the generator duing construction.
 
 - `suggest(num_points: int | None = None) -> list[dict]`:
 

@@ -33,6 +33,23 @@ VOCs objects specify the following fields:
   - `constants`: defines the names and values of constant values that will be passed alongside `variables` to the objective function
   - `observables`: defines the names of values that will be tracked by the generator alongside the `objectives` and `constraints`
 
+Example:
+
+    ```python
+    >>> VOCS(
+      variables = {
+        "x1":[0,1],
+        "x2":[0,5],
+      },
+      objectives = {
+        "f1":"MAXIMIZE",
+      },
+      constraints = {
+        "c1":["LESS_THAN", 0],
+      }
+    )
+    ```
+
 ## Generators
 
 Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) will be a Python class that defines the following methods:

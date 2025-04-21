@@ -18,14 +18,14 @@ This repository is an effort to standardize the interface of the **generators** 
     - `Xopt`: [here](https://github.com/ChristopherMayes/Xopt/blob/main/xopt/generators/scipy/neldermead.py#L64) is the generator for the Nelder-Mead method. All Xopt generators implement the methods `generate` (i.e. make recommendations) and `add_data` (i.e. receive data).
     - `optimas`: [here](https://github.com/optimas-org/optimas/blob/main/optimas/generators/base.py#L27) is the base class for all generators. It implements the methods `suggest` (i.e. make recommendations) and `ingest` (i.e. receive data).
 
-- **Variables, Objectives, Constraints (VOCs):**
+- **Variables, Objectives, Constraints (VOCS):**
 
   A VOCS is an object that specifies the name and types of components of the optimization problem that will be used by the generator. Each generator will validate that it can handle the specified set of variables, objectives, constraints, etc.
 
 
 # Standardization
 
-## VOCs
+## VOCS
 VOCs objects specify the following fields:
   - `variables`: defines the names and types of input parameters that will be passed to an objective function need to be chosen in order to solve the optimization problem
   - `objectives`: defines the names and types of function outputs that will be optimized or characterized

@@ -35,20 +35,13 @@ VOCs objects specify the following fields:
 
 Example:
 
-    ```python
-    >>> VOCS(
-      variables = {
-        "x1":[0,1],
-        "x2":[0,5],
-      },
-      objectives = {
-        "f1":"MAXIMIZE",
-      },
-      constraints = {
-        "c1":["LESS_THAN", 0],
-      }
-    )
-    ```
+  ```python
+  >>> VOCS(
+    variables = {"x1":[0, 1], "x2":[0, 5]},
+    objectives = {"f1":"MAXIMIZE"},
+    constraints = {"c1":["LESS_THAN", 0],}
+  )
+  ```
 
 ## Generators
 
@@ -73,6 +66,15 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
 - `_validate_vocs(self, vocs) -> None`:
 
   Validates the vocs passed to the generator. Raises ``ValueError`` if the generator cannot use the VOCs passed to the generator duing construction.
+
+    Examples:
+
+    ```python
+    >>> generator = NelderMead(
+      VOCS(variables={"x": [-5.0, 5.0], "y": [-3.0, 2.0]}, objectives={"f": "MAXIMIZE"}, constraints={"c":["LESS_THAN", 0.0]})
+    )
+    ValueError("NelderMead generator cannot accept constraints")
+    ```
 
 - `suggest(num_points: int | None = None) -> list[dict]`:
 

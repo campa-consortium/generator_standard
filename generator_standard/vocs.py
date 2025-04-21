@@ -9,7 +9,9 @@ class BaseVariable(BaseModel):
     default_value: float | None = None
 
 class ContinuousVariable(BaseVariable):
-    domain: conlist(float, min_length=2, max_length=2)
+    domain: conlist(float, min_length=2, max_length=2) = Field(
+        description="domain of the variable, [min, max]"
+    )
 
     @model_validator(mode="after")
     def validate_bounds(self):
@@ -34,7 +36,9 @@ class GreaterThanConstraint(BaseConstraint):
 
 
 class BoundsConstraint(BaseConstraint):
-    range: List[float]
+    range: conlist(float, min_length=2, max_length=2) = Field(
+        description="range of the constraint [min, max]"
+    )
 
     @field_validator("range")
     def validate_range(cls, value):

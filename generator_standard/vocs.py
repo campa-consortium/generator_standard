@@ -114,7 +114,7 @@ class VOCS(BaseModel):
         default={}, description="objective names with type of objective"
     )
     constraints: dict[
-        str, ConstraintTypeEnum
+        str, BaseConstraint
     ] = Field(
         default={},
         description="constraint names with a list of constraint type and value",

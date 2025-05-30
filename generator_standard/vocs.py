@@ -24,6 +24,19 @@ class ContinuousVariable(BaseVariable):
             )
         return self
 
+
+class DiscreteVariable(BaseVariable):
+    values: conlist(float, min_length=1) = Field(
+        description="List of allowed discrete values"
+    )
+
+    @model_validator(mode="after")
+    def validate_values(self):
+        if len(set(self.values)) != len(self.values):
+            raise ValueError(f"Values for {self.name} contain duplicates.")
+        return self
+    
+
 class BaseConstraint(BaseModel):
     pass
 

@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Any, List
 
 from pydantic import ConfigDict, conlist, Field, field_validator, model_validator, \
-    BaseModel
+    BaseModel, StrictInt
 
 
 class BaseVariable(BaseModel):
@@ -36,6 +36,10 @@ class DiscreteVariable(BaseVariable):
             raise ValueError(f"Values for {self.name} contain duplicates.")
         return self
     
+
+class IntegerVariable(BaseVariable):
+    value: StrictInt
+
 
 class BaseConstraint(BaseModel):
     pass
@@ -204,3 +208,4 @@ class VOCS(BaseModel):
                 raise ValueError(f"objective input type {type(val)} not supported")
 
         return v
+    

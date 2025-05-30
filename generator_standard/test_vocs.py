@@ -1,6 +1,8 @@
 import pytest
 from pydantic import ValidationError
-from generator_standard.vocs import ContinuousVariable, DiscreteVariable
+from generator_standard.vocs import (
+    ContinuousVariable, DiscreteVariable, IntegerVariable
+)
 
 
 def test_continuous_variable_success():
@@ -27,6 +29,21 @@ def test_discrete_variable_duplicate_fail():
 def test_discrete_variable_empty_fail():
     with pytest.raises(ValidationError):
         DiscreteVariable(name="x", values=[])
+
+
+def test_integer_variable_success():
+    i = IntegerVariable(name="x", value=3)
+    assert i.value == 3
+
+
+def test_integer_variable_rejects_float():
+    with pytest.raises(ValidationError):
+        IntegerVariable(name="x", value=3.0)
+
+
+def test_integer_variable_str_fail():
+    with pytest.raises(ValidationError):
+        IntegerVariable(name="x", value="foo")
 
 
 if __name__ == "__main__":

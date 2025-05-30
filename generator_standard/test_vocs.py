@@ -5,6 +5,17 @@ from generator_standard.vocs import (
 )
 
 
+def test_vocs_1():
+    vocs = VOCS(
+        variables={
+            "x": ContinuousVariable(domain=[0.5, 1.0])
+        },
+        objectives={"f": "MINIMIZE"},
+        constants={"alpha": 1.0},
+        observables=["temp"]
+    )
+
+
 def test_continuous_variable_success():
     var = ContinuousVariable(domain=[0.0, 1.0], default_value=0.5)
     assert var.domain == [0.0, 1.0]

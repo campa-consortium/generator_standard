@@ -1,12 +1,11 @@
 from enum import Enum
-from typing import Any, List
+from typing import Any, List, Union
 
 from pydantic import ConfigDict, conlist, Field, field_validator, model_validator, \
     BaseModel, StrictInt
 
 
 class BaseVariable(BaseModel):
-    name: str
     default_value: float | None = None
 
 class ContinuousVariable(BaseVariable):
@@ -19,7 +18,7 @@ class ContinuousVariable(BaseVariable):
         # check to make sure bounds are correct
         if not self.domain[1] > self.domain[0]:
             raise ValueError(
-                f"Bounds specified for {self.name} do not satisfy the "
+                f"Bounds specified do not satisfy the "
                 f"condition value[1] > value[0]."
             )
         return self
@@ -33,7 +32,7 @@ class DiscreteVariable(BaseVariable):
     @model_validator(mode="after")
     def validate_values(self):
         if len(set(self.values)) != len(self.values):
-            raise ValueError(f"Values for {self.name} contain duplicates.")
+            raise ValueError(f"Discrete options contain duplicates.")
         return self
     
 
@@ -98,6 +97,8 @@ class ObjectiveTypeEnum(str, Enum):
                 return member
 
 
+VariableType = Union[ContinuousVariable, DiscreteVariable, IntegerVariable]
+
 
 class VOCS(BaseModel):
     """
@@ -105,7 +106,7 @@ class VOCS(BaseModel):
     to describe optimization problems.
     """
 
-    variables: dict[str, ContinuousVariable]
+    variables: dict[str, VariableType]
     objectives: dict[
         str,
         ObjectiveTypeEnum

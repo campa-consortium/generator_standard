@@ -6,6 +6,7 @@ from pydantic import ConfigDict, conlist, Field, field_validator, model_validato
 
 
 class BaseVariable(BaseModel):
+    name: str
     default_value: float | None = None
 
 class ContinuousVariable(BaseVariable):

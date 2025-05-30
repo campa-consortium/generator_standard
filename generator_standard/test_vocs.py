@@ -16,6 +16,19 @@ def test_vocs_1():
     )
 
 
+def test_vocs_2():
+    vocs = VOCS(
+        variables={
+            "x": ContinuousVariable(domain=[0.5, 1.0]),
+            "y": DiscreteVariable(values=["a", "b", "c"])
+        },
+        objectives={"f": "MINIMIZE",
+                    "f2": "MAXIMIZE"},
+        constants={"alpha": 1.0,
+                   "beta": 2.0},
+        observables=["temp", "temp2"]
+    )
+
 def test_continuous_variable_success():
     var = ContinuousVariable(domain=[0.0, 1.0], default_value=0.5)
     assert var.domain == [0.0, 1.0]

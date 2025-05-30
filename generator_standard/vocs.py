@@ -25,7 +25,7 @@ class ContinuousVariable(BaseVariable):
 
 
 class DiscreteVariable(BaseVariable):
-    values: conlist(float, min_length=1) = Field(
+    values: conlist(Any, min_length=1) = Field(
         description="List of allowed discrete values"
     )
 

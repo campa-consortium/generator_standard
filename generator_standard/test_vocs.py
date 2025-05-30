@@ -28,13 +28,17 @@ def test_continuous_variable_invalid_bounds():
 
 
 def test_discrete_variable_success():
-    d = DiscreteVariable(values=[1.0, 2.0, 3.0])
-    assert d.values == [1.0, 2.0, 3.0]
+    d = DiscreteVariable(values=[1, 2, 3])
+    assert d.values == [1, 2, 3]
 
+
+def test_discrete_variable_strings():
+    d = DiscreteVariable(values=["a", "bb", "ccc"])
+    assert d.values == ["a", "bb", "ccc"]
 
 def test_discrete_variable_duplicate_fail():
     with pytest.raises(ValidationError):
-        DiscreteVariable(values=[1.0, 2.0, 2.0])
+        DiscreteVariable(values=[1, 2, 2])
 
 
 def test_discrete_variable_empty_fail():

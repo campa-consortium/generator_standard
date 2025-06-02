@@ -109,7 +109,7 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
 
 - `ingest(points: list[dict])`:
 
-  Feeds data (past evaluations) to the generator. Each element of the list is a separate point. Keys of the dictionary must include to the name of each variable and objective specified in the contructor.
+  Feeds data (past evaluations) to the generator. Each element of the list is a separate point. Keys of the dictionary must include all each named field specified in VOCs specified in the contructor.
 
   Example:
 

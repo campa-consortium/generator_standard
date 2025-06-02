@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Any, List
 
-from pydantic import ConfigDict, conlist, Field, field_validator, model_validator, \
+from pydantic import ConfigDict, conlist, conset, Field, field_validator, model_validator, \
     BaseModel, StrictInt
 
 
@@ -25,7 +25,7 @@ class ContinuousVariable(BaseVariable):
 
 
 class DiscreteVariable(BaseVariable):
-    values: conlist(Any, min_length=1) = Field(
+    values: conset(Any, min_length=1) = Field(
         description="List of allowed discrete values"
     )
 

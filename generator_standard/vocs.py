@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, List, Union
+from typing import Any, List
 
 from pydantic import ConfigDict, conlist, Field, field_validator, model_validator, \
     BaseModel, StrictInt
@@ -108,7 +108,7 @@ class ObjectiveTypeEnum(str, Enum):
                 return member
 
 
-VariableType = Union[ContinuousVariable, DiscreteVariable, IntegerVariable]
+VariableType = ContinuousVariable | DiscreteVariable | IntegerVariable
 
 
 class VOCS(BaseModel):

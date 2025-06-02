@@ -133,11 +133,10 @@ class VOCS(BaseModel):
     constants: dict[str, Any] = Field(
         default={}, description="constant names and values passed to evaluate function"
     )
-    observables: List[str] = Field(
-        default=[],
+    observables: set[str] = Field(
+        default=set(),
         description="observation names tracked alongside objectives and constraints",
     )
-
     model_config = ConfigDict(
         validate_assignment=True, use_enum_values=True, extra="forbid"
     )

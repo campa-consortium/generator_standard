@@ -6,7 +6,7 @@ from generator_standard.vocs import (
 
 
 def test_vocs_1():
-    vocs = VOCS(
+    _ = VOCS(
         variables={
             "x": ContinuousVariable(domain=[0.5, 1.0])
         },
@@ -17,7 +17,7 @@ def test_vocs_1():
 
 
 def test_vocs_1a():
-    vocs = VOCS(
+    _ = VOCS(
         variables={"x": [0.5, 1.0]},
         objectives={"f": "MINIMIZE"},
         constants={"alpha": 1.0},
@@ -26,7 +26,7 @@ def test_vocs_1a():
 
 
 def test_vocs_2():
-    vocs = VOCS(
+    _ = VOCS(
         variables={
             "x": ContinuousVariable(domain=[0.5, 1.0]),
             "y": DiscreteVariable(values=["a", "b", "c"])
@@ -40,7 +40,7 @@ def test_vocs_2():
 
 
 def test_vocs_2a():
-    vocs = VOCS(
+    _ = VOCS(
         variables={
             "x": [0.5, 1.0],
             "y": {"a", "b", "c"}  # WIP
@@ -54,7 +54,7 @@ def test_vocs_2a():
 
 
 def test_vocs_3():
-    vocs = VOCS(
+    _ = VOCS(
         variables={
             "x": ContinuousVariable(domain=[0.5, 1.0])
         },

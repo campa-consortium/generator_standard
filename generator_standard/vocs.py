@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, List
+from typing import Any
 
 from pydantic import ConfigDict, conlist, conset, Field, field_validator, model_validator, \
     BaseModel, StrictInt
@@ -18,8 +18,8 @@ class ContinuousVariable(BaseVariable):
         # check to make sure bounds are correct
         if not self.domain[1] > self.domain[0]:
             raise ValueError(
-                f"Bounds specified do not satisfy the "
-                f"condition value[1] > value[0]."
+                "Bounds specified do not satisfy the "
+                "condition value[1] > value[0]."
             )
         return self
 
@@ -32,7 +32,7 @@ class DiscreteVariable(BaseVariable):
     @model_validator(mode="after")
     def validate_values(self):
         if len(set(self.values)) != len(self.values):
-            raise ValueError(f"Discrete options contain duplicates.")
+            raise ValueError("Discrete options contain duplicates.")
         return self
     
 

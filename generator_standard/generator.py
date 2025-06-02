@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, Optional, List
 from .vocs import VOCS
 
 class Generator(ABC):

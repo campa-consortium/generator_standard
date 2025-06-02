@@ -98,7 +98,7 @@ class ConstraintTypeEnum(str, Enum):
 class ObjectiveTypeEnum(str, Enum):
     MINIMIZE = "MINIMIZE"
     MAXIMIZE = "MAXIMIZE"
-    CHARACTERIZE = "CHARACTERIZE"
+    EXPLORE = "EXPLORE"
 
     # Allow any case
     @classmethod

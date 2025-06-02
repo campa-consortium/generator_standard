@@ -30,12 +30,6 @@ class DiscreteVariable(BaseVariable):
         description="List of allowed discrete values"
     )
 
-    @model_validator(mode="after")
-    def validate_values(self):
-        if len(set(self.values)) != len(self.values):
-            raise ValueError("Discrete options contain duplicates.")
-        return self
-
 
 class IntegerVariable(BaseVariable):
     value: StrictInt
@@ -195,6 +189,9 @@ class VOCS(BaseModel):
                 # Dynamically create the constraint instance
                 if constraint_type == "BOUNDS":
                     v[name] = CONSTRAINT_CLASSES[constraint_type](range=val[1:])
+                    if len(val) < 3:
+                        raise ValueError(f"constraint {val} is not correctly "
+                                         "specified")                    
                 else:
                     if len(val) < 2:
                         raise ValueError(f"constraint {val} is not correctly "

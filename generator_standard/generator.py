@@ -37,8 +37,8 @@ class Generator(ABC):
     @abstractmethod
     def _validate_vocs(self, vocs) -> None:
         """
-        Validate if the vocs object is compatable with the current generator. Should
-        raise a ValueError if the vocs object is not compatable with the generator
+        Validate if the vocs object is compatible with the current generator. Should
+        raise a ValueError if the vocs object is not compatible with the generator
         object
         """
 

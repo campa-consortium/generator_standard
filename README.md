@@ -28,7 +28,7 @@ This repository is an effort to standardize the interface of the **generators** 
 ## VOCS
 VOCs objects specify the following fields:
   - `variables`: defines the names and types of input parameters that will be passed to an objective function need to be chosen in order to solve the optimization problem
-  - `objectives`: defines the names and types of function outputs that will be optimized or characterized
+  - `objectives`: defines the names and types of function outputs that will be optimized or explored
   - `constraints`: defines the names and types of function outputs that will used as constraints that need to be satisfied for a valid solution to the optimization problem.
   - `constants`: defines the names and values of constant values that will be passed alongside `variables` to the objective function
   - `observables`: defines the names of values that will be tracked by the generator alongside the `objectives` and `constraints`

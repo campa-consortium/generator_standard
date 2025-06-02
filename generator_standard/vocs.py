@@ -151,6 +151,8 @@ class VOCS(BaseModel):
                 if len(val) != 2:
                     raise ValueError(f"variable {val} is not correctly specified, must have 2 elements")
                 v[name] = ContinuousVariable(domain=val)
+            elif isinstance(val, set):
+                v[name] = DiscreteVariable(values=val)
             elif isinstance(val, dict):
                 variable_type = val.pop("type")
                 try:

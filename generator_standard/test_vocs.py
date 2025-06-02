@@ -18,7 +18,8 @@ def test_vocs_1():
 
 def test_vocs_1a():
     _ = VOCS(
-        variables={"x": [0.5, 1.0]},
+        variables={"x": [0.5, 1.0],
+                   "y": {"a", "b", "c"}},
         objectives={"f": "MINIMIZE"},
         constants={"alpha": 1.0},
         observables=["temp"]
@@ -54,7 +55,7 @@ def test_vocs_2a():
 
 
 def test_vocs_3():
-    _ = VOCS(
+    vocs = VOCS(
         variables={
             "x": ContinuousVariable(domain=[0.5, 1.0])
         },
@@ -77,17 +78,13 @@ def test_continuous_variable_invalid_bounds():
 
 
 def test_discrete_variable_success():
-    d = DiscreteVariable(values=[1, 2, 3])
-    assert d.values == [1, 2, 3]
+    d = DiscreteVariable(values={1, 2, 3})
+    assert d.values == {1, 2, 3}
 
 
 def test_discrete_variable_strings():
-    d = DiscreteVariable(values=["a", "bb", "ccc"])
-    assert d.values == ["a", "bb", "ccc"]
-
-def test_discrete_variable_duplicate_fail():
-    with pytest.raises(ValidationError):
-        DiscreteVariable(values=[1, 2, 2])
+    d = DiscreteVariable(values={"a", "bb", "ccc"})
+    assert d.values == {"a", "bb", "ccc"}
 
 
 def test_discrete_variable_empty_fail():

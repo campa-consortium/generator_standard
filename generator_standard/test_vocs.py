@@ -44,7 +44,7 @@ def test_vocs_2a():
     _ = VOCS(
         variables={
             "x": [0.5, 1.0],
-            "y": {"a", "b", "c"}  # WIP
+            "y": {"a", "b", "c"}
         },
         objectives={"f": "MINIMIZE",
                     "f2": "MAXIMIZE"},
@@ -55,7 +55,7 @@ def test_vocs_2a():
 
 
 def test_vocs_3():
-    vocs = VOCS(
+    _ = VOCS(
         variables={
             "x": ContinuousVariable(domain=[0.5, 1.0])
         },

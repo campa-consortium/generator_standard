@@ -8,6 +8,7 @@ from pydantic import ConfigDict, conlist, conset, Field, field_validator, model_
 class BaseVariable(BaseModel):
     default_value: float | None = None
 
+
 class ContinuousVariable(BaseVariable):
     domain: conlist(float, min_length=2, max_length=2) = Field(
         description="domain of the variable, [min, max]"
@@ -34,7 +35,7 @@ class DiscreteVariable(BaseVariable):
         if len(set(self.values)) != len(self.values):
             raise ValueError("Discrete options contain duplicates.")
         return self
-    
+
 
 class IntegerVariable(BaseVariable):
     value: StrictInt
@@ -49,13 +50,13 @@ class LessThanConstraint(BaseConstraint):
 
     def check(self, x: float) -> bool:
         return x < self.value
-    
+
 
 class GreaterThanConstraint(BaseConstraint):
     value: float
 
     def check(self, x: float) -> bool:
-        return x > self.value    
+        return x > self.value
 
 
 class BoundsConstraint(BaseConstraint):
@@ -68,7 +69,7 @@ class BoundsConstraint(BaseConstraint):
         if len(value) != 2 or value[0] >= value[1]:
             raise ValueError("'range' must have two numbers in ascending order.")
         return value
-    
+
     def check(self, x: float) -> bool:
         lo, hi = self.range
         return lo <= x <= hi  # open both ends
@@ -222,4 +223,3 @@ class VOCS(BaseModel):
                 raise ValueError(f"objective input type {type(val)} not supported")
 
         return v
-    

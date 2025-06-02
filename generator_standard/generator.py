@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from .vocs import VOCS
 
+
 class Generator(ABC):
     """
     Tentative suggest/ingest generator interface

@@ -2,6 +2,7 @@ from generator_standard.generator import Generator
 from generator_standard.vocs import VOCS, ContinuousVariable
 import random
 
+
 class RandomGenerator(Generator):
     def __init__(self, vocs: VOCS):
         super().__init__(vocs)
@@ -48,7 +49,6 @@ class RandomGenerator(Generator):
 
             if not violated:
                 self.data.append(r)
-
 
     def finalize(self) -> None:
         # Nothing to clean up in this simple example

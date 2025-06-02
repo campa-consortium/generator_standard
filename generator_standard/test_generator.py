@@ -85,5 +85,3 @@ for pt in gen.data:
     print(pt)
 
 assert len(gen.data) == 2, f"Expected 2 points in gen.data but found {len(gen.data)}"
-
-

@@ -150,6 +150,7 @@ class VOCS(BaseModel):
             elif isinstance(val, list):
                 if len(val) != 2:
                     raise ValueError(f"variable {val} is not correctly specified, must have 2 elements")
+                v[name] = ContinuousVariable(domain=val)
             elif isinstance(val, dict):
                 variable_type = val.pop("type")
                 try:

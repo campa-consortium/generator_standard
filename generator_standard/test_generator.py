@@ -8,6 +8,7 @@ class RandomGenerator(Generator):
         super().__init__(vocs)
         self.vocs = vocs
         self.data = []
+        random.seed(0)
 
     def _validate_vocs(self, vocs: VOCS) -> None:
         # This generator only supports ContinuousVariable inputs
@@ -28,30 +29,18 @@ class RandomGenerator(Generator):
         return suggestions
 
     def ingest(self, results: list[dict]) -> None:
-        # SH - A check all method - could it go in generator base class?
         for r in results:
             violated = False
             for name, constraint in self.vocs.constraints.items():
                 val = r.get(name)
-                # print(f'{name} val: {val}')
                 if val is None:
                     continue
                 if not constraint.check(val):
                     violated = True
-
-                    #SH tmp check - messages too specific
-                    if hasattr(constraint, "value"):
-                        print(f"{name} violated: {val} > {constraint.value} - discarding")
-                    else:
-                        lo, hi = constraint.range
-                        print(f"{name} violated: {val} not in [{lo}, {hi}] - discarding")
-                    break
-
             if not violated:
                 self.data.append(r)
 
     def finalize(self) -> None:
-        # Nothing to clean up in this simple example
         pass
 
 
@@ -63,8 +52,8 @@ vocs = VOCS(
     },
     objectives={"f": "MINIMIZE"},
     constraints={
-        "c": ["GREATER_THAN", 0.5],
-        "c1": ["BOUNDS", -2.0, 2.0]
+        "c": ["GREATER_THAN", 5.5],
+        "c1": ["BOUNDS", -5.0, 5.0]
     },
     constants={"alpha": 1.0},
     observables=["temp"]
@@ -94,3 +83,7 @@ gen.ingest(pts)
 print('\nResults:')
 for pt in gen.data:
     print(pt)
+
+assert len(gen.data) == 2, f"Expected 2 points in gen.data but found {len(gen.data)}"
+
+

@@ -39,6 +39,20 @@ def test_vocs_2():
     )
 
 
+def test_vocs_2a():
+    vocs = VOCS(
+        variables={
+            "x": [0.5, 1.0],
+            "y": {"a", "b", "c"}  # WIP
+        },
+        objectives={"f": "MINIMIZE",
+                    "f2": "MAXIMIZE"},
+        constants={"alpha": 1.0,
+                   "beta": 2.0},
+        observables=["temp", "temp2"]
+    )
+
+
 def test_vocs_3():
     vocs = VOCS(
         variables={

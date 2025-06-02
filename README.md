@@ -27,19 +27,25 @@ This repository is an effort to standardize the interface of the **generators** 
 
 ## VOCS
 VOCs objects specify the following fields:
+
+Inputs:
   - `variables`: defines the names and types of input parameters that will be passed to an objective function need to be chosen in order to solve the optimization problem
+  - `constants` (optional): defines the names and values of constant values that will be passed alongside `variables` to the objective function
+
+Outputs:
   - `objectives`: defines the names and types of function outputs that will be optimized or characterized
-  - `constraints`: defines the names and types of function outputs that will used as constraints that need to be satisfied for a valid solution to the optimization problem.
-  - `constants`: defines the names and values of constant values that will be passed alongside `variables` to the objective function
-  - `observables`: defines the names of values that will be tracked by the generator alongside the `objectives` and `constraints`
+  - `constraints` (optional): defines the names and types of function outputs that will used as constraints that need to be satisfied for a valid solution to the optimization problem.
+  - `observables` (optional): defines the names of any other function outputs that should be passed to the generator (alongside the `objectives` and `constraints`).
 
 Example:
 
   ```python
   >>> VOCS(
     variables = {"x1":[0, 1], "x2":[0, 5]},
+    constants = {"alpha": 0.55},
     objectives = {"f1":"MAXIMIZE"},
-    constraints = {"c1":["LESS_THAN", 0],}
+    constraints = {"c1":["LESS_THAN", 0]},
+    observables = {"o1"}
   )
   ```
 

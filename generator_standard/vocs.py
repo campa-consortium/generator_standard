@@ -47,9 +47,15 @@ class BaseConstraint(BaseModel):
 class LessThanConstraint(BaseConstraint):
     value: float
 
+    def check(self, x: float) -> bool:
+        return x < self.value
+    
 
 class GreaterThanConstraint(BaseConstraint):
     value: float
+
+    def check(self, x: float) -> bool:
+        return x > self.value    
 
 
 class BoundsConstraint(BaseConstraint):
@@ -62,6 +68,10 @@ class BoundsConstraint(BaseConstraint):
         if len(value) != 2 or value[0] >= value[1]:
             raise ValueError("'range' must have two numbers in ascending order.")
         return value
+    
+    def check(self, x: float) -> bool:
+        lo, hi = self.range
+        return lo <= x <= hi  # open both ends
 
 
 CONSTRAINT_CLASSES = {
@@ -69,6 +79,7 @@ CONSTRAINT_CLASSES = {
     "GREATER_THAN": GreaterThanConstraint,
     "BOUNDS": BoundsConstraint,
 }
+
 
 class ConstraintTypeEnum(str, Enum):
     LESS_THAN = "LESS_THAN"

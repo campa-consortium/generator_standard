@@ -12,7 +12,7 @@ class RandomGenerator(Generator):
         random.seed(0)
 
     def _validate_vocs(self, vocs: VOCS) -> None:
-        """This generator should have atleast one variable and one objective"""
+        """This generator should have atleast one variable (ContinuousVariable) and one objective"""
         if not vocs.variables:
             raise ValueError("VOCS must define at least one variable.")
         if not vocs.objectives:
@@ -25,6 +25,10 @@ class RandomGenerator(Generator):
         """Suggest points from the generator"""
         if num_points is None:
             num_points = 1
+        max_pts = self.vocs.constants.get("max_points")
+        if max_pts is not None and num_points > max_pts:
+            raise ValueError(f"Cannot supply more than {max_pts} points")
+
         suggestions = []
         for _ in range(num_points):
             point = {
@@ -71,6 +75,19 @@ def test_gen_fails_with_discrete_variable():
         RandomGenerator(vocs)
 
 
+def test_suggest_max_points():
+    vocs_local = VOCS(
+        variables={"x": [0.0, 1.0]},
+        objectives={"f": "MINIMIZE"},
+        constants={"max_points": 3},
+        observables=[]
+    )
+    gen = RandomGenerator(vocs_local)
+    gen.suggest(3)
+    with pytest.raises(ValueError, match="Cannot supply more than 3 points"):
+        gen.suggest(5)
+
+
 # Define VOCS with a BOUNDS constraint
 vocs = VOCS(
     variables={
@@ -91,6 +108,13 @@ vocs = VOCS(
 def test_gen_has_constant_alpha():
     gen = RandomGenerator(vocs)
     assert "alpha" in gen.vocs.constants
+
+
+def test_suggest_default_single_point():
+    gen = RandomGenerator(vocs)
+    pts = gen.suggest()
+    assert isinstance(pts, list)
+    assert len(pts) == 1
 
 
 def test_gen_with_constraints():

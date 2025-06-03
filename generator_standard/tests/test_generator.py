@@ -60,30 +60,31 @@ vocs = VOCS(
     observables=["temp"]
 )
 
-# Create generator
-gen = RandomGenerator(vocs)
+def test_gen1():
+    # Create generator
+    gen = RandomGenerator(vocs)
 
-# Suggest points
-pts = gen.suggest(5)
-print("Suggested input points:")
-for pt in pts:
-    print(pt)
+    # Suggest points
+    pts = gen.suggest(5)
+    print("Suggested input points:")
+    for pt in pts:
+        print(pt)
 
-# Simulate evaluation and add results
-for pt in pts:
-    pt["f"] = pt["x"] ** 2 + pt["y"] ** 2  # dummy objective
-    pt["temp"] = pt["x"] - pt["y"]         # dummy observable
-    pt["c"] = pt["x"] - pt["y"]            # dummy constraint
-    pt["c1"] = pt["x"] + pt["y"]           # dummy constraint
-    pt["c2"] = pt["y"] * 2                 # dummy constraint
+    # Simulate evaluation and add results
+    for pt in pts:
+        pt["f"] = pt["x"] ** 2 + pt["y"] ** 2  # dummy objective
+        pt["temp"] = pt["x"] - pt["y"]         # dummy observable
+        pt["c"] = pt["x"] - pt["y"]            # dummy constraint
+        pt["c1"] = pt["x"] + pt["y"]           # dummy constraint
+        pt["c2"] = pt["y"] * 2                 # dummy constraint
 
-print('')
+    print('')
 
-# Ingest results
-gen.ingest(pts)
+    # Ingest results
+    gen.ingest(pts)
 
-print('\nResults:')
-for pt in gen.data:
-    print(pt)
+    print('\nResults:')
+    for pt in gen.data:
+        print(pt)
 
-assert len(gen.data) == 1, f"Expected 1 point in gen.data but found {len(gen.data)}"
+    assert len(gen.data) == 1, f"Expected 1 point in gen.data but found {len(gen.data)}"

@@ -83,7 +83,7 @@ def test_gen_fails_with_discrete_variable():
         constants={},
         observables=[]
     )
-    with pytest.raises(ValueError, match="only supports variables with domain"):
+    with pytest.raises(ValueError, match="only supports continuous variables"):
         RandomGenerator(vocs)
 
 

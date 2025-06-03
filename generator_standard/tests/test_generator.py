@@ -1,6 +1,7 @@
+import pytest
+import random
 from generator_standard.generator import Generator
 from generator_standard.vocs import VOCS, ContinuousVariable
-import random
 
 
 class RandomGenerator(Generator):
@@ -11,12 +12,17 @@ class RandomGenerator(Generator):
         random.seed(0)
 
     def _validate_vocs(self, vocs: VOCS) -> None:
-        # This generator only supports ContinuousVariable inputs
+        """This generator should have atleast one variable and one objective"""
+        if not vocs.variables:
+            raise ValueError("VOCS must define at least one variable.")
+        if not vocs.objectives:
+            raise ValueError("VOCS must define at least one objective.")
         for var in vocs.variables.values():
             if not hasattr(var, "domain"):
                 raise ValueError("RandomGenerator only supports variables with domain (e.g. ContinuousVariable)")
 
     def suggest(self, num_points: int | None = None) -> list[dict]:
+        """Suggest points from the generator"""
         if num_points is None:
             num_points = 1
         suggestions = []
@@ -29,6 +35,8 @@ class RandomGenerator(Generator):
         return suggestions
 
     def ingest(self, results: list[dict]) -> None:
+        """Ingest results into the generator"""
+        # Only add point if it satisfies all constraints
         for r in results:
             violated = False
             for name, constraint in self.vocs.constraints.items():
@@ -44,11 +52,30 @@ class RandomGenerator(Generator):
         pass
 
 
+def test_gen_fails_without_objective():
+    with pytest.raises(ValueError, match="at least one objective"):
+        RandomGenerator(VOCS(
+            variables={"x": [0, 1]},
+            objectives={},
+        ))
+
+
+def test_gen_fails_with_discrete_variable():
+    vocs = VOCS(
+        variables={"x": {"a", "b", "c"}},
+        objectives={"f": "MINIMIZE"},
+        constants={},
+        observables=[]
+    )
+    with pytest.raises(ValueError, match="only supports variables with domain"):
+        RandomGenerator(vocs)
+
+
 # Define VOCS with a BOUNDS constraint
 vocs = VOCS(
     variables={
-        "x": ContinuousVariable(domain=[0.0, 10.0]),
-        "y": ContinuousVariable(domain=[-5.0, 5.0])
+        "x": [0.0, 10.0],  # simple specification
+        "y": ContinuousVariable(domain=[-5.0, 5.0])  # Provide as object
     },
     objectives={"f": "MINIMIZE"},
     constraints={
@@ -60,7 +87,13 @@ vocs = VOCS(
     observables=["temp"]
 )
 
-def test_gen1():
+
+def test_gen_has_constant_alpha():
+    gen = RandomGenerator(vocs)
+    assert "alpha" in gen.vocs.constants
+
+
+def test_gen_with_constraints():
     # Create generator
     gen = RandomGenerator(vocs)
 
@@ -88,3 +121,6 @@ def test_gen1():
         print(pt)
 
     assert len(gen.data) == 1, f"Expected 1 point in gen.data but found {len(gen.data)}"
+    expected = {'x': 4.21, 'y': -2.41, 'f': 23.50, 'temp': 6.62, 'c': 6.62, 'c1': 1.79, 'c2': -4.82}
+    actual = {k: round(gen.data[0][k], 2) for k in expected}
+    assert actual == expected

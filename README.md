@@ -56,7 +56,7 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
 - **Constructor:**
   `__init__(self, vocs: VOCS, *args, **kwargs)`:
 
-  The contructor has one mandatory argument:
+  The constructor has one mandatory argument:
 
   - `VOCS` object that defines the input and output names used inside the generator
 
@@ -109,7 +109,7 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
 
 - `ingest(points: list[dict])`:
 
-  Feeds data (past evaluations) to the generator. Each element of the list is a separate point. Keys of the dictionary must include all each named field specified in VOCs specified in the contructor.
+  Feeds data (past evaluations) to the generator. Each element of the list is a separate point. Keys of the dictionary must include all each named field specified in VOCs specified in the constructor.
 
   Example:
 

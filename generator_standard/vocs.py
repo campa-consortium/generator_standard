@@ -188,10 +188,7 @@ class VOCS(BaseModel):
 
                 # Dynamically create the constraint instance
                 if constraint_type == "BOUNDS":
-                    v[name] = CONSTRAINT_CLASSES[constraint_type](range=val[1:])
-                    if len(val) < 3:
-                        raise ValueError(f"constraint {val} is not correctly "
-                                         "specified")                    
+                    v[name] = CONSTRAINT_CLASSES[constraint_type](range=val[1:])                  
                 else:
                     if len(val) < 2:
                         raise ValueError(f"constraint {val} is not correctly "

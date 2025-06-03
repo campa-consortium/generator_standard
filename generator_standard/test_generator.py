@@ -53,7 +53,8 @@ vocs = VOCS(
     objectives={"f": "MINIMIZE"},
     constraints={
         "c": ["GREATER_THAN", 5.5],
-        "c1": ["BOUNDS", -5.0, 5.0]
+        "c1": ["BOUNDS", -5.0, 5.0],
+        "c2": ["LESS_THAN", -4.0]
     },
     constants={"alpha": 1.0},
     observables=["temp"]
@@ -74,6 +75,7 @@ for pt in pts:
     pt["temp"] = pt["x"] - pt["y"]         # dummy observable
     pt["c"] = pt["x"] - pt["y"]            # dummy constraint
     pt["c1"] = pt["x"] + pt["y"]           # dummy constraint
+    pt["c2"] = pt["y"] * 2                 # dummy constraint
 
 print('')
 
@@ -84,4 +86,4 @@ print('\nResults:')
 for pt in gen.data:
     print(pt)
 
-assert len(gen.data) == 2, f"Expected 2 points in gen.data but found {len(gen.data)}"
+assert len(gen.data) == 1, f"Expected 1 point in gen.data but found {len(gen.data)}"

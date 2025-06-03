@@ -111,7 +111,7 @@ def test_best_point_selection():
 
 
 # Define VOCS with a BOUNDS constraint
-vocs = VOCS(
+vocs_full = VOCS(
     variables={
         "x": [0.0, 10.0],  # simple specification
         "y": ContinuousVariable(domain=[-5.0, 5.0])  # Provide as object
@@ -128,12 +128,12 @@ vocs = VOCS(
 
 
 def test_gen_has_constant_alpha():
-    gen = RandomGenerator(vocs)
+    gen = RandomGenerator(vocs_full)
     assert "alpha" in gen.vocs.constants
 
 
 def test_suggest_default_single_point():
-    gen = RandomGenerator(vocs)
+    gen = RandomGenerator(vocs_full)
     pts = gen.suggest()
     assert isinstance(pts, list)
     assert len(pts) == 1
@@ -141,7 +141,7 @@ def test_suggest_default_single_point():
 
 def test_gen_with_constraints():
     # Create generator
-    gen = RandomGenerator(vocs)
+    gen = RandomGenerator(vocs_full)
 
     # Suggest points
     pts = gen.suggest(5)

@@ -13,14 +13,14 @@ class RandomGenerator(Generator):
         random.seed(0)
 
     def _validate_vocs(self, vocs: VOCS) -> None:
-        """This generator should have atleast one variable (ContinuousVariable) and one objective"""
+        """This generator should have atleast one variable and one objective"""
         if not vocs.variables:
             raise ValueError("VOCS must define at least one variable.")
         if not vocs.objectives:
             raise ValueError("VOCS must define at least one objective.")
         for var in vocs.variables.values():
             if not hasattr(var, "domain"):
-                raise ValueError("RandomGenerator only supports variables with domain (e.g. ContinuousVariable)")
+                raise ValueError("RandomGenerator only supports continuous variables")
 
     def suggest(self, num_points: int | None = None) -> list[dict]:
         """Suggest points from the generator"""

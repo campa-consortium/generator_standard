@@ -80,8 +80,6 @@ def test_gen_fails_with_discrete_variable():
     vocs = VOCS(
         variables={"x": {"a", "b", "c"}},
         objectives={"f": "MINIMIZE"},
-        constants={},
-        observables=[]
     )
     with pytest.raises(ValueError, match="only supports continuous variables"):
         RandomGenerator(vocs)
@@ -92,7 +90,6 @@ def test_suggest_max_points():
         variables={"x": [0.0, 1.0]},
         objectives={"f": "MINIMIZE"},
         constants={"max_points": 3},
-        observables=[]
     )
     gen = RandomGenerator(vocs_local)
     gen.suggest(3)

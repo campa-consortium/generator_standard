@@ -1,5 +1,9 @@
 __pycache__
 Campa_Generator_Standard.egg-info
+<<<<<<< HEAD
 docs/_build
 .idea/*
 dev/*
+=======
+docs/_build
+>>>>>>> 6060dba (add docs Makefile, add markdown parser, other small changes)

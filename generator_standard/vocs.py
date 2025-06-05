@@ -110,7 +110,65 @@ class VOCS(BaseModel):
     """
     Variables, Objectives, Constraints, and other Settings (VOCS) data structure
     to describe optimization problems.
-    # TODO: reference tests for VOCS examples. expand this docstring and descirptions below. Get types as preferred.
+
+    .. tab-set::
+
+        .. tab-item:: variables
+        
+            Names and settings for input parameters for passing to an objective
+            function to solve the optimization problem.
+
+            A **dictionary** with **keys** being variable names (as strings) and **values** as either:
+
+                - A two-element list, representing bounds.
+                - A set of discrete values, with curly-braces.
+                - A single integer.
+                
+            .. code-block:: python
+
+                from generator_standard.vocs import VOCS
+                
+                vocs = VOCS(variables={"x": [0.0, 1.0]})
+                ...
+                vocs = VOCS(variables={"x": {0, 1, 2, "/usr", "/home", "/bin"}})
+                ...
+                vocs = VOCS(variables={"x": 32})
+            
+
+        .. tab-item:: objectives
+        
+            Names of objective function outputs, and guidance for the direction of optimization.
+
+            A **dictionary** with **keys** being objective names (as strings) and **values** as either:
+
+                - ``"MINIMIZE"``
+                - ``"MAXIMIZE"``
+                - ``"EXPLORE"``
+                
+            .. code-block:: python
+
+                from generator_standard.vocs import VOCS
+                
+                vocs = VOCS(objectives={"f": "MINIMIZE"})
+                ...
+                vocs = VOCS(objectives={"f": "MAXIMIZE"})
+                ...
+                vocs = VOCS(objectives={"f": "EXPLORE"})
+
+        .. tab-item:: constraints
+
+            Names of function outputs that and their type of constraint that must be satisfied for
+            a valid solution to the optimization problem.
+
+        .. tab-item:: constants
+
+            Names and values of constants for passing alongside `variables` to the objective function.
+
+        .. tab-item:: observables
+
+            Names of other objective function outputs that should be passed
+            to the optimizer (alongside the `objectives` and `constraints`).
+
     """
 
     variables: dict[str, VariableType]

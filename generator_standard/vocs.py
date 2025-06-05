@@ -110,6 +110,7 @@ class VOCS(BaseModel):
     """
     Variables, Objectives, Constraints, and other Settings (VOCS) data structure
     to describe optimization problems.
+    # TODO: reference tests for VOCS examples. expand this docstring and descirptions below. Get types as preferred.
     """
 
     variables: dict[str, VariableType]

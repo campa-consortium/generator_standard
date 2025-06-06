@@ -200,14 +200,14 @@ class VOCS(BaseModel):
             Names of other objective function outputs that will be passed
             to the optimizer (alongside the `objectives` and `constraints`).
             
-            A **list** of strings.
+            A **set** of strings.
             
             .. code-block:: python
                 :linenos:
 
                 from generator_standard.vocs import VOCS
 
-                vocs = VOCS(observables=["temp", "temp2"])
+                vocs = VOCS(observables={"temp", "temp2"})
 
     """
 

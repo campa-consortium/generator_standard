@@ -15,7 +15,7 @@ This repository is an effort to standardize the interface of the **generators** 
 
 - **Generator:**
 
-  A generator is an object that recommends points to be evaluated in an optimization. It can also receive data (evaluations from past or on-going optimization), which helps it make more informed recommendations.
+  A generator is an object that recommends points to be evaluated in an optimization. It can also receive data (evaluations from past or ongoing optimization), which helps it make more informed recommendations.
 
   *Note:* The generator does **not** orchestrate the overall optimization (e.g. dispatch evaluations, etc.). As such, it is distinct from `libEnsemble`'s `gen_f` function, and is not itself "workflow" software.
 
@@ -25,7 +25,7 @@ This repository is an effort to standardize the interface of the **generators** 
 
 - **Variables, Objectives, Constraints (VOCS):**
 
-  A VOCS is an object that specifies the name and types of components of the optimization problem that will be used by the generator. Each generator will validate that it can handle the specified set of variables, objectives, constraints, etc.
+  A `VOCS` is an object that specifies the names and types of components of the optimization problem that will be used by the generator. Each generator will validate that it can handle the specified set of variables, objectives, constraints, etc.
 
 
 # Standardization
@@ -45,6 +45,9 @@ Outputs:
 Example:
 
   ```python
+
+  from generator_standard.vocs import VOCS
+
   >>> VOCS(
     variables = {"x1":[0, 1], "x2":[0, 5]},
     constants = {"alpha": 0.55},
@@ -53,6 +56,8 @@ Example:
     observables = {"o1"}
   )
   ```
+
+**TODO:** See the docs for the complete API and more examples.
 
 ## Generators
 

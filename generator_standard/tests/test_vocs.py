@@ -127,7 +127,7 @@ def test_vocs_1():
         },
         objectives={"f": "MINIMIZE"},
         constants={"alpha": 1.0},
-        observables=["temp"]
+        observables={"temp"}
     )
 
 
@@ -137,7 +137,7 @@ def test_vocs_1a():
                    "y": {"a", "b", "c"}},
         objectives={"f": "MINIMIZE"},
         constants={"alpha": 1.0},
-        observables=["temp"]
+        observables={"temp"}
     )
 
 
@@ -151,7 +151,7 @@ def test_vocs_2():
                     "f2": "MAXIMIZE"},
         constants={"alpha": 1.0,
                    "beta": 2.0},
-        observables=["temp", "temp2"]
+        observables={"temp", "temp2"}
     )
 
 
@@ -165,7 +165,7 @@ def test_vocs_2a():
                     "f2": "MAXIMIZE"},
         constants={"alpha": 1.0,
                    "beta": 2.0},
-        observables=["temp", "temp2"]
+        observables={"temp", "temp2"}
     )
 
 
@@ -179,7 +179,7 @@ def test_vocs_3():
                      "c1": ["LESS_THAN", 2.0],
                      "c2": ["LESS_than", 3.0]},
         constants={"alpha": 1.0},
-        observables=["temp"]
+        observables={"temp"}
     )
 
 

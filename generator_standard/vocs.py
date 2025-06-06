@@ -125,15 +125,16 @@ class VOCS(BaseModel):
                 - A single integer.
                 
             .. code-block:: python
+                :linenos:
 
                 from generator_standard.vocs import VOCS
-                
+
                 vocs = VOCS(variables={"x": [0.0, 1.0]})
                 ...
                 vocs = VOCS(variables={"x": {0, 1, 2, "/usr", "/home", "/bin"}})
                 ...
                 vocs = VOCS(variables={"x": 32})
-            
+
 
         .. tab-item:: objectives
         
@@ -144,21 +145,42 @@ class VOCS(BaseModel):
                 - ``"MINIMIZE"``
                 - ``"MAXIMIZE"``
                 - ``"EXPLORE"``
-                
+
             .. code-block:: python
+                :linenos:
 
                 from generator_standard.vocs import VOCS
-                
+
                 vocs = VOCS(objectives={"f": "MINIMIZE"})
                 ...
                 vocs = VOCS(objectives={"f": "MAXIMIZE"})
                 ...
                 vocs = VOCS(objectives={"f": "EXPLORE"})
 
+
         .. tab-item:: constraints
 
-            Names of function outputs that and their type of constraint that must be satisfied for
+            Names of function outputs that and their category of constraint that must be satisfied for
             a valid solution to the optimization problem.
+
+            A **dictionary** with **keys** being constraint names (as strings) and **values** as a length-2 list
+            with the first element being ``"LESS_THAN"``, ``"GREATER_THAN"``, or ``"BOUNDS"``.
+
+            The second element depends on the type of constraint:
+                - If ``"BOUNDS"``, a two-element list of floats, representing boundaries.
+                - If ``"LESS_THAN"``, or ``"GREATER_THAN"``, a single float value.
+
+            .. code-block:: python
+                :linenos:
+
+                from generator_standard.vocs import VOCS
+
+                vocs = VOCS(constraints={"c": ["LESS_THAN", 1.0]})
+                ...
+                vocs = VOCS(constraints={"c": ["GREATER_THAN", 0.0]})
+                ...
+                vocs = VOCS(constraints={"c": ["BOUNDS", [0.0, 1.0]]})
+
 
         .. tab-item:: constants
 

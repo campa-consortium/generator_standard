@@ -185,11 +185,29 @@ class VOCS(BaseModel):
         .. tab-item:: constants
 
             Names and values of constants for passing alongside `variables` to the objective function.
+            
+            A **dictionary** with **keys** being constant names (as strings) and **values** as any type.
+            
+            .. code-block:: python
+                :linenos:
+
+                from generator_standard.vocs import VOCS
+
+                vocs = VOCS(constants={"alpha": 1.0, "beta": 2.0})
 
         .. tab-item:: observables
 
-            Names of other objective function outputs that should be passed
+            Names of other objective function outputs that will be passed
             to the optimizer (alongside the `objectives` and `constraints`).
+            
+            A **list** of strings.
+            
+            .. code-block:: python
+                :linenos:
+
+                from generator_standard.vocs import VOCS
+
+                vocs = VOCS(observables=["temp", "temp2"])
 
     """
 

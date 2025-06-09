@@ -181,7 +181,3 @@ def test_vocs_3():
         constants={"alpha": 1.0},
         observables=["temp"]
     )
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])

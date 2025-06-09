@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Any
 
 from pydantic import ConfigDict, conlist, conset, Field, field_validator, model_validator, \
-    BaseModel, StrictInt
+    BaseModel
 
 
 class BaseVariable(BaseModel):

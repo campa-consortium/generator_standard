@@ -46,8 +46,6 @@ class RandomGenerator(Generator):
             violated = False
             for name, constraint in self.vocs.constraints.items():
                 val = r.get(name)
-                if val is None:
-                    continue
                 if not constraint.check(val):
                     violated = True
             if not violated:
@@ -67,6 +65,13 @@ class RandomGenerator(Generator):
     def finalize(self) -> None:
         pass
 
+
+def test_gen_fails_without_variable():
+    with pytest.raises(ValueError, match="at least one variable"):
+        RandomGenerator(VOCS(
+            variables={},
+            objectives={"f": "MINIMIZE"},
+        ))
 
 def test_gen_fails_without_objective():
     with pytest.raises(ValueError, match="at least one objective"):

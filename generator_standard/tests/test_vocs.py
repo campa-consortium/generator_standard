@@ -2,7 +2,8 @@ import pytest
 from pydantic import ValidationError
 from generator_standard.vocs import (
     ContinuousVariable, DiscreteVariable, IntegerVariable, VOCS,
-    BoundsConstraint, GreaterThanConstraint, LessThanConstraint
+    BoundsConstraint, GreaterThanConstraint, LessThanConstraint,
+    ObjectiveTypeEnum
 )
 
 
@@ -158,13 +159,31 @@ def test_vocs_2():
             "y": DiscreteVariable(values=["a", "b", "c"]),
         },
         objectives={"f": "MINIMIZE",
-                    "f2": "MAXIMIZE"},
+                    "f2": "MAXIMIZE",
+                    "f3": "EXPLORE"},
         constants={"alpha": 1.0,
                    "beta": 2.0},
         observables=["temp", "temp2"]
     )
     assert vocs.objectives["f"] == "MINIMIZE"
     assert vocs.objectives["f2"] == "MAXIMIZE"
+    assert vocs.objectives["f3"] == "EXPLORE"
+
+
+def test_vocs_2a():
+    vocs = VOCS(
+        variables={
+            "x": ContinuousVariable(domain=[0.5, 1.0]),
+        },
+        objectives={
+            "f": ObjectiveTypeEnum.MINIMIZE,
+            "f2": ObjectiveTypeEnum.MAXIMIZE,
+            "f3": ObjectiveTypeEnum.EXPLORE,
+        },
+    )
+    assert vocs.objectives["f"] == "MINIMIZE"
+    assert vocs.objectives["f2"] == "MAXIMIZE"
+    assert vocs.objectives["f3"] == "EXPLORE"
 
 
 def test_vocs_3():
@@ -174,10 +193,23 @@ def test_vocs_3():
         constraints={"c": ["GREATER_THAN", 0.0],
                      "c1": ["LESS_THAN", 2.0],
                      "c2": ["LESS_than", 3.0]},
-        constants={"alpha": 1.0},
-        observables=["temp"]
     )
     assert isinstance(vocs.constraints["c"], GreaterThanConstraint)
     assert vocs.constraints["c"].value == 0.0
     assert isinstance(vocs.constraints["c2"], LessThanConstraint)
     assert vocs.constraints["c2"].value == 3.0
+
+
+def test_vocs_3a():
+    vocs = VOCS(
+        variables={"x": [0.5, 1.0]},
+        objectives={"f": "MINIMIZE"},
+        constraints={
+            "c": GreaterThanConstraint(value=0.0),
+            "c1": LessThanConstraint(value=2.0),
+        },
+    )
+    assert isinstance(vocs.constraints["c"], GreaterThanConstraint)
+    assert vocs.constraints["c"].value == 0.0
+    assert isinstance(vocs.constraints["c1"], LessThanConstraint)
+    assert vocs.constraints["c1"].value == 2.0

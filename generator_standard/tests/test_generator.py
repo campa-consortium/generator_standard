@@ -171,3 +171,4 @@ def test_gen_with_constraints():
     actual = {k: round(gen.data[0][k], 2) for k in expected}
     assert actual == expected
     assert list(gen.vocs.objectives.values())[0] == "MINIMIZE"
+    gen.finalize()

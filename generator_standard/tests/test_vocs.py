@@ -31,16 +31,6 @@ def test_discrete_variable_empty_fail():
         DiscreteVariable(values=[])
 
 
-def test_integer_variable_success():
-    i = IntegerVariable(value=3)
-    assert i.value == 3
-
-
-def test_integer_variable_rejects_float():
-    with pytest.raises(ValidationError):
-        IntegerVariable(value=3.0)
-
-
 def test_invalid_continuous_bounds_list():
     with pytest.raises(ValueError, match="must have 2 elements"):
         VOCS(variables={"x": [0.5]}, objectives={})
@@ -122,9 +112,7 @@ def test_bounds_constraint_invalid_range_order():
 
 def test_vocs_1():
     _ = VOCS(
-        variables={
-            "x": ContinuousVariable(domain=[0.5, 1.0])
-        },
+        variables={"x":[0.5, 1.0]},
         objectives={"f": "MINIMIZE"},
         constants={"alpha": 1.0},
         observables=["temp"]
@@ -145,7 +133,8 @@ def test_vocs_2():
     _ = VOCS(
         variables={
             "x": ContinuousVariable(domain=[0.5, 1.0]),
-            "y": DiscreteVariable(values=["a", "b", "c"])
+            "y": DiscreteVariable(values=["a", "b", "c"]),
+            "z": IntegerVariable(domain=[1, 10]),
         },
         objectives={"f": "MINIMIZE",
                     "f2": "MAXIMIZE"},
@@ -171,9 +160,7 @@ def test_vocs_2a():
 
 def test_vocs_3():
     _ = VOCS(
-        variables={
-            "x": ContinuousVariable(domain=[0.5, 1.0])
-        },
+        variables={"x": [0.5, 1.0]},
         objectives={"f": "MINIMIZE"},
         constraints={"c": ["GREATER_THAN", 0.0],
                      "c1": ["LESS_THAN", 2.0],

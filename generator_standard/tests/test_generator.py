@@ -98,7 +98,7 @@ def test_suggest_max_points():
 
 
 def test_best_point_selection():
-    pts = [{"x": 0.1, "f": 2.0}, {"x": 0.2, "f": 1.5}, {"x": 0.3, "f": 1.8}]
+    pts = [{"x": 0.1, "f": 1.8}, {"x": 0.2, "f": 1.5}, {"x": 0.3, "f": 2.0}]
     vocs = VOCS(variables={"x": [0.0, 1.0]}, objectives={"f": "MINIMIZE"})
     gen = RandomGenerator(vocs)
     gen.ingest(pts)
@@ -107,7 +107,7 @@ def test_best_point_selection():
     vocs1 = VOCS(variables={"x": [0.0, 1.0]}, objectives={"f": "MAXIMIZE"})
     gen1 = RandomGenerator(vocs1)
     gen1.ingest(pts)
-    assert gen1.best_point == {"x": 0.1, "f": 2.0}, "Incorrect best point"
+    assert gen1.best_point == {"x": 0.3, "f": 2.0}, "Incorrect best point"
 
 
 # Define VOCS with a BOUNDS constraint

@@ -1,7 +1,8 @@
 import pytest
 from pydantic import ValidationError
 from generator_standard.vocs import (
-    ContinuousVariable, DiscreteVariable, IntegerVariable, VOCS, BoundsConstraint
+    ContinuousVariable, DiscreteVariable, IntegerVariable, VOCS,
+    BoundsConstraint, GreaterThanConstraint, LessThanConstraint
 )
 
 
@@ -34,6 +35,16 @@ def test_discrete_variable_empty_fail():
 def test_invalid_continuous_bounds_list():
     with pytest.raises(ValueError, match="must have 2 elements"):
         VOCS(variables={"x": [0.5]}, objectives={})
+
+
+def test_integer_variable_non_integer_domain():
+    with pytest.raises(ValidationError, match="Input should be a valid integer"):
+        IntegerVariable(domain=[0, 1.5])
+
+
+def test_integer_variable_invalid_bounds():
+    with pytest.raises(ValueError, match="domain must satisfy"):
+        IntegerVariable(domain=[5, 5])
 
 
 def test_discrete_variable_removes_duplicates():
@@ -111,30 +122,40 @@ def test_bounds_constraint_invalid_range_order():
 
 
 def test_vocs_1():
-    _ = VOCS(
+    vocs = VOCS(
         variables={"x":[0.5, 1.0]},
         objectives={"f": "MINIMIZE"},
         constants={"alpha": 1.0},
         observables=["temp"]
     )
+    assert isinstance(vocs.variables["x"], ContinuousVariable)
+    assert vocs.variables["x"].domain == [0.5, 1.0]
+    assert vocs.objectives["f"] == "MINIMIZE"
+    assert vocs.constants["alpha"] == 1.0
+    assert "temp" in vocs.observables    
 
 
 def test_vocs_1a():
-    _ = VOCS(
-        variables={"x": [0.5, 1.0],
-                   "y": {"a", "b", "c"}},
+    vocs = VOCS(
+        variables={
+            "x": [0, 1],  # Defaults to Continuous even if integer bounds
+            "y": {"a", "b", "c"},
+            "z": IntegerVariable(domain=[1, 10])
+        },
         objectives={"f": "MINIMIZE"},
         constants={"alpha": 1.0},
         observables=["temp"]
     )
+    assert isinstance(vocs.variables["x"], ContinuousVariable)
+    assert isinstance(vocs.variables["y"], DiscreteVariable)
+    assert isinstance(vocs.variables["z"], IntegerVariable)
 
 
 def test_vocs_2():
-    _ = VOCS(
+    vocs = VOCS(
         variables={
             "x": ContinuousVariable(domain=[0.5, 1.0]),
             "y": DiscreteVariable(values=["a", "b", "c"]),
-            "z": IntegerVariable(domain=[1, 10]),
         },
         objectives={"f": "MINIMIZE",
                     "f2": "MAXIMIZE"},
@@ -142,24 +163,12 @@ def test_vocs_2():
                    "beta": 2.0},
         observables=["temp", "temp2"]
     )
-
-
-def test_vocs_2a():
-    _ = VOCS(
-        variables={
-            "x": [0.5, 1.0],
-            "y": {"a", "b", "c"}
-        },
-        objectives={"f": "MINIMIZE",
-                    "f2": "MAXIMIZE"},
-        constants={"alpha": 1.0,
-                   "beta": 2.0},
-        observables=["temp", "temp2"]
-    )
+    assert vocs.objectives["f"] == "MINIMIZE"
+    assert vocs.objectives["f2"] == "MAXIMIZE"
 
 
 def test_vocs_3():
-    _ = VOCS(
+    vocs = VOCS(
         variables={"x": [0.5, 1.0]},
         objectives={"f": "MINIMIZE"},
         constraints={"c": ["GREATER_THAN", 0.0],
@@ -168,3 +177,7 @@ def test_vocs_3():
         constants={"alpha": 1.0},
         observables=["temp"]
     )
+    assert isinstance(vocs.constraints["c"], GreaterThanConstraint)
+    assert vocs.constraints["c"].value == 0.0
+    assert isinstance(vocs.constraints["c2"], LessThanConstraint)
+    assert vocs.constraints["c2"].value == 3.0

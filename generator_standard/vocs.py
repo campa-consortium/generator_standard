@@ -37,8 +37,6 @@ class IntegerVariable(BaseVariable):
     @model_validator(mode="after")
     def validate_bounds_are_integers(self):
         if self.domain is not None:
-            if not all(isinstance(x, int) for x in self.domain):
-                raise ValueError("IntegerVariable domain must contain only integers")
             if self.domain[0] >= self.domain[1]:
                 raise ValueError("IntegerVariable domain must satisfy domain[0] < domain[1]")
         return self

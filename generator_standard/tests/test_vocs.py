@@ -3,7 +3,7 @@ from pydantic import ValidationError
 from generator_standard.vocs import (
     ContinuousVariable, DiscreteVariable, IntegerVariable, VOCS,
     BoundsConstraint, GreaterThanConstraint, LessThanConstraint,
-    ObjectiveTypeEnum
+    ConstraintTypeEnum, ObjectiveTypeEnum
 )
 
 
@@ -126,14 +126,16 @@ def test_vocs_1():
     vocs = VOCS(
         variables={"x":[0.5, 1.0]},
         objectives={"f": "MINIMIZE"},
-        constants={"alpha": 1.0},
-        observables=["temp"]
+        constants={"alpha": 1.0, "beta": 2.0},
+        observables=["temp", "temp2"]
     )
     assert isinstance(vocs.variables["x"], ContinuousVariable)
     assert vocs.variables["x"].domain == [0.5, 1.0]
     assert vocs.objectives["f"] == "MINIMIZE"
     assert vocs.constants["alpha"] == 1.0
+    assert vocs.constants["beta"] == 2.0
     assert "temp" in vocs.observables    
+    assert "temp2" in vocs.observables    
 
 
 def test_vocs_1a():
@@ -144,12 +146,16 @@ def test_vocs_1a():
             "z": IntegerVariable(domain=[1, 10])
         },
         objectives={"f": "MINIMIZE"},
-        constants={"alpha": 1.0},
-        observables=["temp"]
     )
     assert isinstance(vocs.variables["x"], ContinuousVariable)
     assert isinstance(vocs.variables["y"], DiscreteVariable)
     assert isinstance(vocs.variables["z"], IntegerVariable)
+
+
+def check_objectives(vocs):
+    expected = {"f": "MINIMIZE", "f2": "MAXIMIZE", "f3": "EXPLORE"}
+    for key, val in expected.items():
+        assert vocs.objectives[key] == val, f"{key} expected {val}, got {vocs.objectives[key]}"
 
 
 def test_vocs_2():
@@ -161,13 +167,8 @@ def test_vocs_2():
         objectives={"f": "MINIMIZE",
                     "f2": "MAXIMIZE",
                     "f3": "EXPLORE"},
-        constants={"alpha": 1.0,
-                   "beta": 2.0},
-        observables=["temp", "temp2"]
     )
-    assert vocs.objectives["f"] == "MINIMIZE"
-    assert vocs.objectives["f2"] == "MAXIMIZE"
-    assert vocs.objectives["f3"] == "EXPLORE"
+    check_objectives(vocs)
 
 
 def test_vocs_2a():
@@ -181,10 +182,30 @@ def test_vocs_2a():
             "f3": ObjectiveTypeEnum.EXPLORE,
         },
     )
-    assert vocs.objectives["f"] == "MINIMIZE"
-    assert vocs.objectives["f2"] == "MAXIMIZE"
-    assert vocs.objectives["f3"] == "EXPLORE"
+    check_objectives(vocs)
 
+
+def test_vocs_2b():
+    vocs = VOCS(
+        variables={
+            "x": ContinuousVariable(domain=[0.5, 1.0]),
+        },
+        objectives={
+            "f": ObjectiveTypeEnum("minimize"),
+            "f2": ObjectiveTypeEnum("maximize"),
+            "f3": ObjectiveTypeEnum("explore"),
+        },
+    )
+    check_objectives(vocs)
+
+
+def check_constraints(vocs):
+    assert isinstance(vocs.constraints["c"], GreaterThanConstraint)
+    assert vocs.constraints["c"].value == 0.0
+    assert isinstance(vocs.constraints["c1"], LessThanConstraint)
+    assert vocs.constraints["c1"].value == 2.0
+    assert isinstance(vocs.constraints["c2"], BoundsConstraint)
+    assert vocs.constraints["c2"].range == [-1.0, 1.0]
 
 def test_vocs_3():
     vocs = VOCS(
@@ -192,12 +213,9 @@ def test_vocs_3():
         objectives={"f": "MINIMIZE"},
         constraints={"c": ["GREATER_THAN", 0.0],
                      "c1": ["LESS_THAN", 2.0],
-                     "c2": ["LESS_than", 3.0]},
+                     "c2": ["BOUNDS", -1.0, 1.0]},
     )
-    assert isinstance(vocs.constraints["c"], GreaterThanConstraint)
-    assert vocs.constraints["c"].value == 0.0
-    assert isinstance(vocs.constraints["c2"], LessThanConstraint)
-    assert vocs.constraints["c2"].value == 3.0
+    check_constraints(vocs)
 
 
 def test_vocs_3a():
@@ -207,9 +225,21 @@ def test_vocs_3a():
         constraints={
             "c": GreaterThanConstraint(value=0.0),
             "c1": LessThanConstraint(value=2.0),
+            "c2": BoundsConstraint(range=[-1.0, 1.0]),
         },
     )
-    assert isinstance(vocs.constraints["c"], GreaterThanConstraint)
-    assert vocs.constraints["c"].value == 0.0
-    assert isinstance(vocs.constraints["c1"], LessThanConstraint)
-    assert vocs.constraints["c1"].value == 2.0
+    check_constraints(vocs)
+
+
+def test_vocs_3b():
+    vocs = VOCS(
+        variables={"x": [0.0, 1.0]},
+        objectives={"f": "MINIMIZE"},
+        constraints={
+            "c": [ConstraintTypeEnum("greater_than"), 0.0],
+            "c1": [ConstraintTypeEnum("less_than"), 2.0],
+            "c2": [ConstraintTypeEnum("bounds"), -1.0, 1.0],
+        },
+    )
+    check_constraints(vocs)
+    

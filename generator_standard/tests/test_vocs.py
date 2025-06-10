@@ -1,7 +1,9 @@
 import pytest
 from pydantic import ValidationError
 from generator_standard.vocs import (
-    ContinuousVariable, DiscreteVariable, IntegerVariable, VOCS, BoundsConstraint
+    ContinuousVariable, DiscreteVariable, IntegerVariable, VOCS,
+    BoundsConstraint, GreaterThanConstraint, LessThanConstraint,
+    ConstraintTypeEnum, ObjectiveTypeEnum
 )
 
 
@@ -31,19 +33,19 @@ def test_discrete_variable_empty_fail():
         DiscreteVariable(values=[])
 
 
-def test_integer_variable_success():
-    i = IntegerVariable(value=3)
-    assert i.value == 3
-
-
-def test_integer_variable_rejects_float():
-    with pytest.raises(ValidationError):
-        IntegerVariable(value=3.0)
-
-
 def test_invalid_continuous_bounds_list():
     with pytest.raises(ValueError, match="must have 2 elements"):
         VOCS(variables={"x": [0.5]}, objectives={})
+
+
+def test_integer_variable_non_integer_domain():
+    with pytest.raises(ValidationError, match="Input should be a valid integer"):
+        IntegerVariable(domain=[0, 1.5])
+
+
+def test_integer_variable_invalid_bounds():
+    with pytest.raises(ValueError, match="domain must satisfy"):
+        IntegerVariable(domain=[5, 5])
 
 
 def test_discrete_variable_removes_duplicates():
@@ -121,67 +123,123 @@ def test_bounds_constraint_invalid_range_order():
 
 
 def test_vocs_1():
-    _ = VOCS(
-        variables={
-            "x": ContinuousVariable(domain=[0.5, 1.0])
-        },
+    vocs = VOCS(
+        variables={"x":[0.5, 1.0]},
         objectives={"f": "MINIMIZE"},
-        constants={"alpha": 1.0},
-        observables={"temp"}
+        constants={"alpha": 1.0, "beta": 2.0},
+        observables=["temp", "temp2"]
     )
+    assert isinstance(vocs.variables["x"], ContinuousVariable)
+    assert vocs.variables["x"].domain == [0.5, 1.0]
+    assert vocs.objectives["f"] == "MINIMIZE"
+    assert vocs.constants["alpha"] == 1.0
+    assert vocs.constants["beta"] == 2.0
+    assert "temp" in vocs.observables    
+    assert "temp2" in vocs.observables    
 
 
 def test_vocs_1a():
-    _ = VOCS(
-        variables={"x": [0.5, 1.0],
-                   "y": {"a", "b", "c"}},
+    vocs = VOCS(
+        variables={
+            "x": [0, 1],  # Defaults to Continuous even if integer bounds
+            "y": {"a", "b", "c"},
+            "z": IntegerVariable(domain=[1, 10])
+        },
         objectives={"f": "MINIMIZE"},
-        constants={"alpha": 1.0},
-        observables={"temp"}
     )
+    assert isinstance(vocs.variables["x"], ContinuousVariable)
+    assert isinstance(vocs.variables["y"], DiscreteVariable)
+    assert isinstance(vocs.variables["z"], IntegerVariable)
+
+
+def check_objectives(vocs):
+    expected = {"f": "MINIMIZE", "f2": "MAXIMIZE", "f3": "EXPLORE"}
+    for key, val in expected.items():
+        assert vocs.objectives[key] == val, f"{key} expected {val}, got {vocs.objectives[key]}"
 
 
 def test_vocs_2():
-    _ = VOCS(
+    vocs = VOCS(
         variables={
             "x": ContinuousVariable(domain=[0.5, 1.0]),
-            "y": DiscreteVariable(values=["a", "b", "c"])
+            "y": DiscreteVariable(values=["a", "b", "c"]),
         },
         objectives={"f": "MINIMIZE",
-                    "f2": "MAXIMIZE"},
-        constants={"alpha": 1.0,
-                   "beta": 2.0},
-        observables={"temp", "temp2"}
+                    "f2": "MAXIMIZE",
+                    "f3": "EXPLORE"},
     )
+    check_objectives(vocs)
 
 
 def test_vocs_2a():
-    _ = VOCS(
+    vocs = VOCS(
         variables={
-            "x": [0.5, 1.0],
-            "y": {"a", "b", "c"}
+            "x": ContinuousVariable(domain=[0.5, 1.0]),
         },
-        objectives={"f": "MINIMIZE",
-                    "f2": "MAXIMIZE"},
-        constants={"alpha": 1.0,
-                   "beta": 2.0},
-        observables={"temp", "temp2"}
+        objectives={
+            "f": ObjectiveTypeEnum.MINIMIZE,
+            "f2": ObjectiveTypeEnum.MAXIMIZE,
+            "f3": ObjectiveTypeEnum.EXPLORE,
+        },
     )
+    check_objectives(vocs)
 
+
+def test_vocs_2b():
+    vocs = VOCS(
+        variables={
+            "x": ContinuousVariable(domain=[0.5, 1.0]),
+        },
+        objectives={
+            "f": ObjectiveTypeEnum("minimize"),
+            "f2": ObjectiveTypeEnum("maximize"),
+            "f3": ObjectiveTypeEnum("explore"),
+        },
+    )
+    check_objectives(vocs)
+
+
+def check_constraints(vocs):
+    assert isinstance(vocs.constraints["c"], GreaterThanConstraint)
+    assert vocs.constraints["c"].value == 0.0
+    assert isinstance(vocs.constraints["c1"], LessThanConstraint)
+    assert vocs.constraints["c1"].value == 2.0
+    assert isinstance(vocs.constraints["c2"], BoundsConstraint)
+    assert vocs.constraints["c2"].range == [-1.0, 1.0]
 
 def test_vocs_3():
-    _ = VOCS(
-        variables={
-            "x": ContinuousVariable(domain=[0.5, 1.0])
-        },
+    vocs = VOCS(
+        variables={"x": [0.5, 1.0]},
         objectives={"f": "MINIMIZE"},
         constraints={"c": ["GREATER_THAN", 0.0],
                      "c1": ["LESS_THAN", 2.0],
-                     "c2": ["LESS_than", 3.0]},
-        constants={"alpha": 1.0},
-        observables={"temp"}
+                     "c2": ["BOUNDS", -1.0, 1.0]},
     )
+    check_constraints(vocs)
 
 
-if __name__ == "__main__":
-    pytest.main([__file__])
+def test_vocs_3a():
+    vocs = VOCS(
+        variables={"x": [0.5, 1.0]},
+        objectives={"f": "MINIMIZE"},
+        constraints={
+            "c": GreaterThanConstraint(value=0.0),
+            "c1": LessThanConstraint(value=2.0),
+            "c2": BoundsConstraint(range=[-1.0, 1.0]),
+        },
+    )
+    check_constraints(vocs)
+
+
+def test_vocs_3b():
+    vocs = VOCS(
+        variables={"x": [0.0, 1.0]},
+        objectives={"f": "MINIMIZE"},
+        constraints={
+            "c": [ConstraintTypeEnum("greater_than"), 0.0],
+            "c1": [ConstraintTypeEnum("less_than"), 2.0],
+            "c2": [ConstraintTypeEnum("bounds"), -1.0, 1.0],
+        },
+    )
+    check_constraints(vocs)
+    

@@ -46,8 +46,6 @@ class RandomGenerator(Generator):
             violated = False
             for name, constraint in self.vocs.constraints.items():
                 val = r.get(name)
-                if val is None:
-                    continue
                 if not constraint.check(val):
                     violated = True
             if not violated:
@@ -67,6 +65,13 @@ class RandomGenerator(Generator):
     def finalize(self) -> None:
         pass
 
+
+def test_gen_fails_without_variable():
+    with pytest.raises(ValueError, match="at least one variable"):
+        RandomGenerator(VOCS(
+            variables={},
+            objectives={"f": "MINIMIZE"},
+        ))
 
 def test_gen_fails_without_objective():
     with pytest.raises(ValueError, match="at least one objective"):
@@ -98,7 +103,7 @@ def test_suggest_max_points():
 
 
 def test_best_point_selection():
-    pts = [{"x": 0.1, "f": 2.0}, {"x": 0.2, "f": 1.5}, {"x": 0.3, "f": 1.8}]
+    pts = [{"x": 0.1, "f": 1.8}, {"x": 0.2, "f": 1.5}, {"x": 0.3, "f": 2.0}]
     vocs = VOCS(variables={"x": [0.0, 1.0]}, objectives={"f": "MINIMIZE"})
     gen = RandomGenerator(vocs)
     gen.ingest(pts)
@@ -107,7 +112,7 @@ def test_best_point_selection():
     vocs1 = VOCS(variables={"x": [0.0, 1.0]}, objectives={"f": "MAXIMIZE"})
     gen1 = RandomGenerator(vocs1)
     gen1.ingest(pts)
-    assert gen1.best_point == {"x": 0.1, "f": 2.0}, "Incorrect best point"
+    assert gen1.best_point == {"x": 0.3, "f": 2.0}, "Incorrect best point"
 
 
 # Define VOCS with a BOUNDS constraint
@@ -171,3 +176,4 @@ def test_gen_with_constraints():
     actual = {k: round(gen.data[0][k], 2) for k in expected}
     assert actual == expected
     assert list(gen.vocs.objectives.values())[0] == "MINIMIZE"
+    gen.finalize()

@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Any
 
 from pydantic import ConfigDict, conlist, conset, Field, field_validator, model_validator, \
-    BaseModel, StrictInt
+    BaseModel
 
 
 class BaseVariable(BaseModel):
@@ -32,7 +32,14 @@ class DiscreteVariable(BaseVariable):
 
 
 class IntegerVariable(BaseVariable):
-    value: StrictInt
+    domain: conlist(int, min_length=2, max_length=2) | None = None
+
+    @model_validator(mode="after")
+    def validate_bounds_are_integers(self):
+        if self.domain is not None:
+            if self.domain[0] >= self.domain[1]:
+                raise ValueError("IntegerVariable domain must satisfy domain[0] < domain[1]")
+        return self
 
 
 class BaseConstraint(BaseModel):

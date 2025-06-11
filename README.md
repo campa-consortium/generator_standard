@@ -1,6 +1,11 @@
 # Overview
 
-This repository is an effort to standardize the interface of the **generators** in optimization libraries such as [`Xopt`](https://github.com/ChristopherMayes/Xopt), [`optimas`](https://github.com/optimas-org/optimas), [`libEnsemble`](https://github.com/Libensemble/libensemble), [`rsopt`](https://github.com/radiasoft/rsopt).
+This repository is an effort to standardize the interface of the **generators** in optimization libraries such as:
+
+- [`Xopt`](https://github.com/ChristopherMayes/Xopt)
+- [`optimas`](https://github.com/optimas-org/optimas)
+- [`libEnsemble`](https://github.com/Libensemble/libensemble)
+- [`rsopt`](https://github.com/radiasoft/rsopt)
 
 **The objective of this effort is for these different libraries to be able to use each other's generators with little effort.**
 
@@ -10,7 +15,7 @@ This repository is an effort to standardize the interface of the **generators** 
 
 - **Generator:**
 
-  A generator is an object that recommends points to be evaluated in an optimization. It can also receive data (evaluations from past or on-going optimization), which helps it make more informed recommendations.
+  A generator is an object that recommends points to be evaluated in an optimization. It can also receive data (evaluations from past or ongoing optimization), which helps it make more informed recommendations.
 
   *Note:* The generator does **not** orchestrate the overall optimization (e.g. dispatch evaluations, etc.). As such, it is distinct from `libEnsemble`'s `gen_f` function, and is not itself "workflow" software.
 
@@ -20,7 +25,7 @@ This repository is an effort to standardize the interface of the **generators** 
 
 - **Variables, Objectives, Constraints (VOCS):**
 
-  A VOCS is an object that specifies the name and types of components of the optimization problem that will be used by the generator. Each generator will validate that it can handle the specified set of variables, objectives, constraints, etc.
+  A `VOCS` is an object that specifies the names and types of components of the optimization problem that will be used by the generator. Each generator will validate that it can handle the specified set of variables, objectives, constraints, etc.
 
 
 # Standardization
@@ -40,38 +45,40 @@ Outputs:
 Example:
 
   ```python
+
+  from generator_standard.vocs import VOCS
+
   >>> VOCS(
     variables = {"x1":[0, 1], "x2":[0, 5]},
-    constants = {"alpha": 0.55},
     objectives = {"f1":"MAXIMIZE"},
+    constants = {"alpha": 0.55},
     constraints = {"c1":["LESS_THAN", 0]},
     observables = {"o1"}
   )
   ```
 
+**TODO:** See the docs for the complete API and more examples.
+
 ## Generators
 
-Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) will be a Python class that defines the following methods:
+Each generator will be a Python class that defines the following methods:
 
 - **Constructor:**
   `__init__(self, vocs: VOCS, *args, **kwargs)`:
 
-  The constructor has one mandatory argument:
+  The mandatory `VOCS` defines the input and output names used inside the generator.
 
-  - `VOCS` object that defines the input and output names used inside the generator
-
-  The constructor will also include variable positional and keyword arguments to
-  accommodate the different options that each type of generator has.
+  The constructor also accomodates variable positional and keyword arguments so each generator can be customized.
 
   Examples:
 
     ```python
-    >>> generator = NelderMead(VOCS(variables={"x": [-5.0, 5.0], "y": [-3.0, 2.0]}, objectives={"f": "MAXIMIZE"}))
+    >>> generator = NelderMead(VOCS(variables={"x": [-5.0, 5.0], "y": [-3.0, 2.0]}, objectives={"f": "MAXIMIZE"}), adaptive=False)
     ```
 
 - `_validate_vocs(self, vocs) -> None`:
 
-  Validates the vocs passed to the generator. Raises ``ValueError`` if the generator cannot use the VOCs passed to the generator duing construction.
+  Validates the `VOCS` passed to the generator. Raises ``ValueError`` if the VOCS passed to the generator duing construction is invalid.
 
     Examples:
 
@@ -87,29 +94,32 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
   Returns set of points in the input space, to be evaluated next. Each element of the list is a separate point.
   Keys of the dictionary include the name of each input variable specified in the constructor. Values of the dictionaries are **scalars**.
 
-  In addition, some generators can generate a unique identification number for each point that they generate. In that case, this identification number appears in the dictionary under the key `"_id"`.
-  When a generator produces an identification number, it is important that the identification number is included in the corresponding dictionary passed to this generator in `ingest` (under the same key: `"_id"`).
+  When `num_points` is passed, the generator should return exactly this number of points, or raise a error ``ValueError`` if it is unable to.
 
-  - When `num_points` is not passed: the generator decides how many points to return.
-    Different generators will return different number of points, by default. For instance, the simplex would return 1 or 3 points. A genetic algorithm could return the whole population. Batched Bayesian optimization would return the batch size (i.e., number of points that can be processed in parallel), which would be specified in the constructor.
+  When `num_points` is not passed, the generator decides how many points to return.
+  Different generators will return different number of points. For instance, the simplex would return 1 or 3 points. A genetic algorithm could return the whole population. Batched Bayesian optimization would return the batch size (i.e., number of points that can be processed in parallel), which would be specified in the constructor.
 
-  - When it is passed: the generator should return exactly this number of points, or raise a error ``ValueError`` if it is unable to. If the user is flexible about the number of points, it should simply not pass `num_points`.
+  In addition, some generators can generate a unique identifier for each generated point. If implemented, this identifier should appear in the dictionary under the key `"_id"`.
+  When a generator produces an identifier, it must be included in the corresponding dictionary passed back to that generator in `ingest` (under the same key: `"_id"`).
 
   Examples:
 
     ```python
+
+    >>> generator.suggest(2)
+    [{"x": 1.2, "y": 0.8}, {"x": -0.2, "y": 0.4}]
+
     >>> generator.suggest(100)  # too many points
     ValueError
-    ```
 
-    ```python
     >>> generator.suggest()
     [{"x": 1.2, "y": 0.8}, {"x": -0.2, "y": 0.4}, {"x": 4.3, "y": -0.1}]
     ```
 
 - `ingest(points: list[dict])`:
 
-  Feeds data (past evaluations) to the generator. Each element of the list is a separate point. Keys of the dictionary must include all each named field specified in VOCs specified in the constructor.
+  Feeds data (past evaluations) to the generator. Each element of the list is a separate point. Keys of the dictionary must include each named field specified in the `VOCS` provided
+  to the generator on instantiation.
 
   Example:
 
@@ -124,10 +134,12 @@ Each type of generator (e.g., Nelder-Nead, different flavors of GA, BO, etc.) wi
   ```
 
   Any points provided to the generator via `ingest` that were not created by the current generator instance should omit the `_id` field. If points are given to `ingest` with an `_id` value that is not known internally, a `ValueError` error should be raised.
+  
+  # JLN: Maybe this should be generator-specific? Could a model/generator be populated with previous points, basically to "restart" ?
 
 - `finalize()`:
 
-  **Optional**. Performs any work required to close down the generator. Many generators may need to close down background processes, open files, databases,
+  **Optional**. Performs any work required to close down the generator. Some generators may need to close down background processes, files, databases,
   or dump data to disk. This is similar to calling `.close()` on an open file.
 
   Example:

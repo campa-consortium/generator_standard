@@ -1,0 +1,6 @@
+sphinx
+autodoc_pydantic
+sphinx_rtd_theme
+sphinx-design
+sphinx-copybutton
+myst-parser

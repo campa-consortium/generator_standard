@@ -9,8 +9,8 @@ class Generator(ABC):
     .. code-block:: python
 
         class MyGenerator(Generator):
-            def __init__(self, my_parameter, my_keyword=None):
-                self.model = init_model(my_parameter, my_keyword)
+            def __init__(self, VOCS, my_parameter, my_keyword=None):
+                self.model = init_model(VOCS, my_parameter, my_keyword)
 
             def suggest(self, num_points):
                 return self.model.create_points(num_points)
@@ -18,8 +18,14 @@ class Generator(ABC):
             def ingest(self, results):
                 self.model.update_model(results)
 
+            def finalize(self):
+                self.model.dump()
 
         my_generator = MyGenerator(my_parameter=100)
+        results = simulate(my_generator.suggest(10))
+        my_generator.ingest(results)
+        my_generator.finalize()
+
     """
 
     @abstractmethod

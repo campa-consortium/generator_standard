@@ -50,8 +50,8 @@ Example:
 
   >>> VOCS(
     variables = {"x1":[0, 1], "x2":[0, 5]},
-    constants = {"alpha": 0.55},
     objectives = {"f1":"MAXIMIZE"},
+    constants = {"alpha": 0.55},
     constraints = {"c1":["LESS_THAN", 0]},
     observables = {"o1"}
   )
@@ -91,8 +91,8 @@ Each generator will be a Python class that defines the following methods:
 
 - `suggest(num_points: int | None = None) -> list[dict]`:
 
-  Returns a set of points in the input space to be evaluated next. Each element of the list is a separate point, as a dictionary.
-  Dictionary keys include the names of each input variable specified in the generator's `VOCS`. Values of the dictionaries are **scalars**.
+  Returns set of points in the input space, to be evaluated next. Each element of the list is a separate point.
+  Keys of the dictionary include the name of each input variable specified in the constructor. Values of the dictionaries are **scalars**.
 
   When `num_points` is passed, the generator should return exactly this number of points, or raise a error ``ValueError`` if it is unable to.
 
@@ -133,13 +133,13 @@ Each generator will be a Python class that defines the following methods:
   >>> generator.ingest(point)
   ```
 
-  Any points provided to the generator via `ingest` that were not created by the matching generator instance should omit the `_id` field for safety. If points are given to `ingest` with an `_id` value that is not known internally, a `ValueError` error should be raised.  
+  Any points provided to the generator via `ingest` that were not created by the current generator instance should omit the `_id` field. If points are given to `ingest` with an `_id` value that is not known internally, a `ValueError` error should be raised.
   
   # JLN: Maybe this should be generator-specific? Could a model/generator be populated with previous points, basically to "restart" ?
 
 - `finalize()`:
 
-  **Optional**. Performs any work required to close down the generator. Many generators may need to close down background processes, files, databases,
+  **Optional**. Performs any work required to close down the generator. Some generators may need to close down background processes, files, databases,
   or dump data to disk. This is similar to calling `.close()` on an open file.
 
   Example:

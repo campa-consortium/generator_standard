@@ -118,6 +118,24 @@ class VOCS(BaseModel):
     Variables, Objectives, Constraints, and other Settings (VOCS) data structure
     to describe optimization problems.
 
+    Each generator accepts this object as the parameter, and must validate
+    that it can handle the specified set of variables, objectives, constraints, etc.
+
+    .. code-block:: python
+        :linenos:
+
+        from generator_standard.vocs import VOCS
+
+        >>> vocs = VOCS(
+            variables = {"x1":[0, 1], "x2":[0, 5]},
+            objectives = {"f1":"MAXIMIZE"},
+            constraints = {"c1":["LESS_THAN", 0]},
+            constants = {"alpha": 0.55},
+            observables = {"o1"}
+        )
+        ...
+        >>> my_generator = MyGenerator(vocs, parameter=100, my_keyword=10)
+
     .. tab-set::
 
         .. tab-item:: variables

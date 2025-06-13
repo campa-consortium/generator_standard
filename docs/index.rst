@@ -14,3 +14,4 @@ Generator Standard
 
     generator
     vocs
+    patterns

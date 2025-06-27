@@ -253,7 +253,7 @@ class VOCS(BaseModel):
                     class_ = globals()[variable_type]
                 except KeyError:
                     raise ValueError(
-                        f"constraint type {variable_type} is not available"
+                        f"variable type {variable_type} is not available"
                     )
                 v[name] = class_(**val)
 

@@ -53,6 +53,14 @@ def test_invalid_variable_dict_type():
         VOCS(variables={"x": 5.0}, objectives={})
 
 
+def test_invalid_variable_class():
+    with pytest.raises(ValueError, match="not available"):
+        VOCS(
+            variables={"x": {"type": "FakeVariable", "value": 1}},
+            objectives={},
+        )
+
+
 def test_invalid_constraint_class():
     with pytest.raises(ValueError, match="not available"):
         VOCS(

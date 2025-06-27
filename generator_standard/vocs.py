@@ -38,19 +38,6 @@ class DiscreteVariable(BaseVariable):
     )
 
 
-class IntegerVariable(BaseVariable):
-    domain: conlist(int, min_length=2, max_length=2) | None = None
-
-    @model_validator(mode="after")
-    def validate_bounds_are_integers(self):
-        if self.domain is not None:
-            if self.domain[0] >= self.domain[1]:
-                raise ValueError(
-                    "IntegerVariable domain must satisfy domain[0] < domain[1]"
-                )
-        return self
-
-
 class BaseConstraint(BaseModel):
     pass
 
@@ -119,7 +106,7 @@ class ObjectiveTypeEnum(str, Enum):
                 return member
 
 
-VariableType = ContinuousVariable | DiscreteVariable | IntegerVariable
+VariableType = ContinuousVariable | DiscreteVariable
 
 
 class VOCS(BaseModel):

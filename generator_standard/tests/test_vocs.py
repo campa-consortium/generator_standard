@@ -3,7 +3,6 @@ from pydantic import ValidationError
 from generator_standard.vocs import (
     ContinuousVariable,
     DiscreteVariable,
-    IntegerVariable,
     VOCS,
     BoundsConstraint,
     GreaterThanConstraint,
@@ -42,16 +41,6 @@ def test_discrete_variable_empty_fail():
 def test_invalid_continuous_bounds_list():
     with pytest.raises(ValueError, match="must have 2 elements"):
         VOCS(variables={"x": [0.5]}, objectives={})
-
-
-def test_integer_variable_non_integer_domain():
-    with pytest.raises(ValidationError, match="Input should be a valid integer"):
-        IntegerVariable(domain=[0, 1.5])
-
-
-def test_integer_variable_invalid_bounds():
-    with pytest.raises(ValueError, match="domain must satisfy"):
-        IntegerVariable(domain=[5, 5])
 
 
 def test_discrete_variable_removes_duplicates():
@@ -149,13 +138,11 @@ def test_vocs_1a():
         variables={
             "x": [0, 1],  # Defaults to Continuous even if integer bounds
             "y": {"a", "b", "c"},
-            "z": IntegerVariable(domain=[1, 10]),
         },
         objectives={"f": "MINIMIZE"},
     )
     assert isinstance(vocs.variables["x"], ContinuousVariable)
     assert isinstance(vocs.variables["y"], DiscreteVariable)
-    assert isinstance(vocs.variables["z"], IntegerVariable)
 
 
 def check_objectives(vocs):
@@ -256,9 +243,8 @@ def test_vocs_3b():
 def test_vocs_serialization_deserialization():
     vocs = VOCS(
         variables={
-            "x": [0, 1],  # Defaults to Continuous even if integer bounds
+            "x": [0, 1],
             "y": {"a", "b", "c"},
-            "z": IntegerVariable(domain=[1, 10]),
         },
         objectives={"f1": "MINIMIZE", "f2": "MAXIMIZE", "f3": "EXPLORE"},
         constraints={

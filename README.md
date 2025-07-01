@@ -135,8 +135,6 @@ Each generator will be a Python class that defines the following methods:
 
   Any points provided to the generator via `ingest` that were not created by the current generator instance should omit the `_id` field. If points are given to `ingest` with an `_id` value that is not known internally, a `ValueError` error should be raised.
   
-  # JLN: Maybe this should be generator-specific? Could a model/generator be populated with previous points, basically to "restart" ?
-
 - `finalize()`:
 
   **Optional**. Performs any work required to close down the generator. Some generators may need to close down background processes, files, databases,

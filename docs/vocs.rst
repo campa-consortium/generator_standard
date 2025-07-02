@@ -1,3 +1,5 @@
+.. _vocs:
+
 ========
 VOCS API
 ========
@@ -10,3 +12,5 @@ VOCS API
     :model-show-config-member: False
     :model-show-config-summary: False
     :member-order: bysource
+    :model-show-field-summary: False
+    :model-signature-prefix:

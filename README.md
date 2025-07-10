@@ -51,8 +51,8 @@ Example:
   >>> VOCS(
     variables = {"x1":[0, 1], "x2":[0, 5]},
     objectives = {"f1":"MAXIMIZE"},
-    constants = {"alpha": 0.55},
     constraints = {"c1":["LESS_THAN", 0]},
+    constants = {"alpha": 0.55},
     observables = {"o1"}
   )
   ```

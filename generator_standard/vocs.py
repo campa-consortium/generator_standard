@@ -1,8 +1,16 @@
 from enum import Enum
 from typing import Any
 
-from pydantic import ConfigDict, conlist, conset, Field, field_validator, model_validator, \
-    BaseModel
+from pydantic import (
+    ConfigDict,
+    conlist,
+    conset,
+    Field,
+    field_validator,
+    model_validator,
+    BaseModel,
+    field_serializer,
+)
 
 
 class BaseVariable(BaseModel):
@@ -19,8 +27,7 @@ class ContinuousVariable(BaseVariable):
         # check to make sure bounds are correct
         if not self.domain[1] > self.domain[0]:
             raise ValueError(
-                "Bounds specified do not satisfy the "
-                "condition value[1] > value[0]."
+                "Bounds specified do not satisfy the condition value[1] > value[0]."
             )
         return self
 
@@ -29,17 +36,6 @@ class DiscreteVariable(BaseVariable):
     values: conset(Any, min_length=1) = Field(
         description="List of allowed discrete values"
     )
-
-
-class IntegerVariable(BaseVariable):
-    domain: conlist(int, min_length=2, max_length=2) | None = None
-
-    @model_validator(mode="after")
-    def validate_bounds_are_integers(self):
-        if self.domain is not None:
-            if self.domain[0] >= self.domain[1]:
-                raise ValueError("IntegerVariable domain must satisfy domain[0] < domain[1]")
-        return self
 
 
 class BaseConstraint(BaseModel):
@@ -110,7 +106,7 @@ class ObjectiveTypeEnum(str, Enum):
                 return member
 
 
-VariableType = ContinuousVariable | DiscreteVariable | IntegerVariable
+VariableType = ContinuousVariable | DiscreteVariable
 
 
 class VOCS(BaseModel):
@@ -139,7 +135,7 @@ class VOCS(BaseModel):
     .. tab-set::
 
         .. tab-item:: variables
-        
+
             Names and settings for input parameters for passing to an objective
             function to solve the optimization problem.
 
@@ -148,7 +144,7 @@ class VOCS(BaseModel):
                 - A two-element list, representing bounds.
                 - A set of discrete values, with curly-braces.
                 - A single integer.
-                
+
             .. code-block:: python
                 :linenos:
 
@@ -162,7 +158,7 @@ class VOCS(BaseModel):
 
 
         .. tab-item:: objectives
-        
+
             Names of objective function outputs, and guidance for the direction of optimization.
 
             A **dictionary** with **keys** being objective names (as strings) and **values** as either:
@@ -210,9 +206,9 @@ class VOCS(BaseModel):
         .. tab-item:: constants
 
             Names and values of constants for passing alongside `variables` to the objective function.
-            
+
             A **dictionary** with **keys** being constant names (as strings) and **values** as any type.
-            
+
             .. code-block:: python
                 :linenos:
 
@@ -224,9 +220,9 @@ class VOCS(BaseModel):
 
             Names of other objective function outputs that will be passed
             to the optimizer (alongside the `objectives` and `constraints`).
-            
+
             A **set** of strings.
-            
+
             .. code-block:: python
                 :linenos:
 
@@ -237,15 +233,10 @@ class VOCS(BaseModel):
     """
 
     variables: dict[str, VariableType]
-    objectives: dict[
-        str,
-        ObjectiveTypeEnum
-    ] = Field(
+    objectives: dict[str, ObjectiveTypeEnum] = Field(
         default={}, description="objective names with type of objective"
     )
-    constraints: dict[
-        str, BaseConstraint
-    ] = Field(
+    constraints: dict[str, BaseConstraint] = Field(
         default={},
         description="constraint names with a list of constraint type and value",
     )
@@ -268,7 +259,9 @@ class VOCS(BaseModel):
                 v[name] = val
             elif isinstance(val, list):
                 if len(val) != 2:
-                    raise ValueError(f"variable {val} is not correctly specified, must have 2 elements")
+                    raise ValueError(
+                        f"variable {val} is not correctly specified, must have 2 elements"
+                    )
                 v[name] = ContinuousVariable(domain=val)
             elif isinstance(val, set):
                 v[name] = DiscreteVariable(values=val)
@@ -277,8 +270,9 @@ class VOCS(BaseModel):
                 try:
                     class_ = globals()[variable_type]
                 except KeyError:
-                    raise ValueError(f"constraint type {variable_type} is not "
-                                     f"available")
+                    raise ValueError(
+                        f"variable type {variable_type} is not available"
+                    )
                 v[name] = class_(**val)
 
             else:
@@ -297,26 +291,29 @@ class VOCS(BaseModel):
                 try:
                     class_ = globals()[constraint_type]
                 except KeyError:
-                    raise ValueError(f"constraint type {constraint_type} is not "
-                                     f"available")
+                    raise ValueError(
+                        f"constraint type {constraint_type} is not available"
+                    )
                 v[name] = class_(**val)
             elif isinstance(val, list):
                 if not isinstance(val[0], str):
-                    raise ValueError(f"constraint type {val[0]} must be a string if "
-                                     f"specified by a list")
+                    raise ValueError(
+                        f"constraint type {val[0]} must be a string if "
+                        f"specified by a list"
+                    )
 
                 constraint_type = val[0].upper()
                 if constraint_type not in CONSTRAINT_CLASSES:
                     raise ValueError(
-                        f"Constraint type '{constraint_type}' is not supported for '{name}'.")
+                        f"Constraint type '{constraint_type}' is not supported for '{name}'."
+                    )
 
                 # Dynamically create the constraint instance
                 if constraint_type == "BOUNDS":
-                    v[name] = CONSTRAINT_CLASSES[constraint_type](range=val[1:])                  
+                    v[name] = CONSTRAINT_CLASSES[constraint_type](range=val[1:])
                 else:
                     if len(val) < 2:
-                        raise ValueError(f"constraint {val} is not correctly "
-                                         "specified")
+                        raise ValueError(f"constraint {val} is not correctly specified")
                     v[name] = CONSTRAINT_CLASSES[constraint_type](value=val[1])
 
             else:
@@ -341,3 +338,11 @@ class VOCS(BaseModel):
                 raise ValueError(f"objective input type {type(val)} not supported")
 
         return v
+
+    @field_serializer("variables", "constraints")
+    def serialize_objects(self, v):
+        output = {}
+        for name, val in v.items():
+            output[name] = val.model_dump() | {"type": type(val).__name__}
+
+        return output

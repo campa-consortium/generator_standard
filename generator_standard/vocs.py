@@ -125,7 +125,6 @@ class VOCS(BaseModel):
 
                 - A two-element list, representing bounds.
                 - A set of discrete values, with curly-braces.
-                - A single integer.
 
             .. code-block:: python
                 :linenos:
@@ -135,8 +134,6 @@ class VOCS(BaseModel):
                 vocs = VOCS(variables={"x": [0.0, 1.0]})
                 ...
                 vocs = VOCS(variables={"x": {0, 1, 2, "/usr", "/home", "/bin"}})
-                ...
-                vocs = VOCS(variables={"x": 32})
 
 
         .. tab-item:: objectives
@@ -236,13 +233,14 @@ class VOCS(BaseModel):
     @field_validator("variables", mode="before")
     def validate_variables(cls, v):
         assert isinstance(v, dict)
+        assert len(v), "variables must not be empty."
         for name, val in v.items():
             if isinstance(val, BaseVariable):
                 v[name] = val
             elif isinstance(val, list):
                 if len(val) != 2:
                     raise ValueError(
-                        f"variable {val} is not correctly specified, must have 2 elements"
+                        f"variable {val} is not correctly specified, must have two elements representing upper and lower bounds."
                     )
                 v[name] = ContinuousVariable(domain=val)
             elif isinstance(val, set):
@@ -258,7 +256,7 @@ class VOCS(BaseModel):
                 v[name] = class_(**val)
 
             else:
-                raise ValueError(f"variable input type {type(val)} not supported")
+                raise ValueError(f"variable input type {type(val)} not supported. Must be a list of two elements representing upper and lower bounds *or* a set of possible values to sample.")
 
         return v
 
@@ -328,3 +326,24 @@ class VOCS(BaseModel):
             output[name] = val.model_dump() | {"type": type(val).__name__}
 
         return output
+
+    @property
+    def variables_domain_lb(self) -> list:
+        return [self.variables[i].domain[0] for i in self.variables]
+
+    @property
+    def variables_domain_ub(self) -> list:
+        return [self.variables[i].domain[1] for i in self.variables]
+
+    @property
+    def variables_names(self) -> list:
+        return list(self.variables.keys())
+
+    @property
+    def objectives_names(self) -> list:
+        return list(self.objectives.keys())
+    
+    @property
+    def dim(self) -> int:
+        import wat; import ipdb; ipdb.set_trace()
+        return len(list(self.variables.keys()))

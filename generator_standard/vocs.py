@@ -328,22 +328,74 @@ class VOCS(BaseModel):
         return output
 
     @property
-    def variables_domain_lb(self) -> list:
-        return [self.variables[i].domain[0] for i in self.variables]
+    def bounds(self) -> list:
+        return [v for _, v in self.variables.items()]
 
     @property
-    def variables_domain_ub(self) -> list:
-        return [self.variables[i].domain[1] for i in self.variables]
-
-    @property
-    def variables_names(self) -> list:
+    def variable_names(self) -> list[str]:
         return list(self.variables.keys())
 
     @property
-    def objectives_names(self) -> list:
+    def objective_names(self) -> list[str]:
         return list(self.objectives.keys())
-    
+
     @property
-    def dim(self) -> int:
-        import wat; import ipdb; ipdb.set_trace()
-        return len(list(self.variables.keys()))
+    def constraint_names(self) -> list[str]:
+        if not self.constraints:
+            return []
+        return list(self.constraints.keys())
+
+    @property
+    def observable_names(self) -> list[str]:
+        return self.observables
+
+    @property
+    def output_names(self) -> list[str]:
+        full_list = self.objective_names
+        for ele in self.constraint_names:
+            if ele not in full_list:
+                full_list += [ele]
+
+        for ele in self.observable_names:
+            if ele not in full_list:
+                full_list += [ele]
+
+        return full_list
+
+    @property
+    def constant_names(self) -> list[str]:
+        if self.constants is None:
+            return []
+        return list(self.constants.keys())
+
+    @property
+    def all_names(self) -> list[str]:
+        return self.variable_names + self.constant_names + self.output_names
+
+    @property
+    def n_variables(self) -> int:
+        return len(self.variables)
+
+    @property
+    def n_constants(self) -> int:
+        return len(self.constants)
+
+    @property
+    def n_inputs(self) -> int:
+        return self.n_variables + self.n_constants
+
+    @property
+    def n_objectives(self) -> int:
+        return len(self.objectives)
+
+    @property
+    def n_constraints(self) -> int:
+        return len(self.constraints)
+
+    @property
+    def n_observables(self) -> int:
+        return len(self.observables)
+
+    @property
+    def n_outputs(self) -> int:
+        return len(self.output_names)

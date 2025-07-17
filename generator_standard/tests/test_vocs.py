@@ -39,7 +39,7 @@ def test_discrete_variable_empty_fail():
 
 
 def test_invalid_continuous_bounds_list():
-    with pytest.raises(ValueError, match="must have 2 elements"):
+    with pytest.raises(ValidationError, match="must have 2 elements"):
         VOCS(variables={"x": [0.5]}, objectives={})
 
 
@@ -270,3 +270,35 @@ def test_vocs_serialization_deserialization():
 
     # Check if the deserialized object matches the original
     assert vocs_deserialized == vocs
+
+if __name__ == "__main__":
+    test_continuous_variable_success()
+    test_continuous_variable_invalid_bounds()
+    test_discrete_variable_success()
+    test_discrete_variable_strings()
+    test_discrete_variable_empty_fail()
+    test_invalid_continuous_bounds_list()
+    test_discrete_variable_removes_duplicates()
+    test_invalid_variable_dict_type()
+    test_invalid_variable_class()
+    test_invalid_constraint_class()
+    test_invalid_constraint_list_type()
+    test_invalid_bounds_constraint_short_list()
+    test_invalid_constraint_type_rejected()
+    test_invalid_non_bounds_constraint_short_list()
+    test_unsupported_constraint_type()
+    test_invalid_non_bounds_constraint_short_list()
+    test_unsupported_constraint_type()
+    test_objective_enum_case_insensitive()
+    test_invalid_objective_enum_value()
+    test_invalid_objective_type()
+    test_bounds_constraint_invalid_range_order()
+    test_vocs_1()
+    test_vocs_1a()
+    test_vocs_2()
+    test_vocs_2a()
+    test_vocs_2b()
+    test_vocs_3()
+    test_vocs_3a()
+    test_vocs_3b()
+    test_vocs_serialization_deserialization()

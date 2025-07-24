@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Union, Optional
+from typing import Any, Union, Optional, Tuple
 
 from pydantic import (
     ConfigDict,
@@ -40,7 +40,7 @@ class DiscreteVariable(BaseVariable):
 
 class ObservableType(BaseModel):
     """Type specification for observables."""
-    dtype: Optional[str] = Field(description="Data type of the observable (e.g., 'float', 'int', 'str')")
+    dtype: Optional[Union[str, Tuple]] = Field(description="Data type of the observable")
     default_value: Any = Field(default=None, description="Default value for the observable")
 
 
@@ -231,7 +231,7 @@ class VOCS(BaseModel):
     constants: dict[str, Any] = Field(
         default={}, description="constant names and values passed to evaluate function"
     )
-    observables: Union[set[str], dict[str, Union[str, ObservableType]]] = Field(
+    observables: Union[set[str], dict[str, Any]] = Field(
         default=set(),
         description="observation names tracked alongside objectives and constraints",
     )
@@ -328,19 +328,9 @@ class VOCS(BaseModel):
 
     @field_validator("observables", mode="before")
     def validate_observables(cls, v):
-        if isinstance(v, set):
-            return v
-        elif isinstance(v, list):
-            return set(v)
+        if isinstance(v, (set, list)):
+            return set(v) if isinstance(v, list) else v
         elif isinstance(v, dict):
-            # Validate observable types
-            for name, val in v.items():
-                if isinstance(val, str):
-                    v[name] = ObservableType(dtype=val)
-                elif isinstance(val, ObservableType):
-                    v[name] = val
-                else:
-                    raise ValueError(f"observable type {type(val)} not supported")
             return v
         else:
             raise ValueError(f"observables input type {type(v)} not supported")

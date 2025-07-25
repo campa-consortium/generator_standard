@@ -38,12 +38,6 @@ class DiscreteVariable(BaseVariable):
     )
 
 
-class ObservableType(BaseModel):
-    """Type specification for observables."""
-    dtype: Optional[Union[str, Tuple]] = Field(description="Data type of the observable")
-    default_value: Any = Field(default=None, description="Default value for the observable")
-
-
 class BaseConstraint(BaseModel):
     pass
 

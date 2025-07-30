@@ -314,13 +314,17 @@ def test_output_names_property():
             "c2": ["LESS_THAN", 2.0],
             "c3": ["BOUNDS", -1.0, 1.0],
         },
+        observables=["temp"],
     )
-    assert vocs.output_names == ["f1", "c1", "c2", "c3"]
+    assert vocs.output_names == ["f1", "c1", "c2", "c3", "temp"]
 
 
 def test_constant_names_property():
     vocs = VOCS(variables={"x": [0, 1], "y": [2, 4]}, constants={"alpha": 1.0})
     assert vocs.constant_names == ["alpha"]
+
+    vocs = VOCS(variables={"x": [0, 1], "y": [2, 4]})
+    assert vocs.constant_names == []
 
 
 def test_all_names_property():
@@ -374,5 +378,6 @@ def test_n_outputs_property():
             "c2": ["LESS_THAN", 2.0],
             "c3": ["BOUNDS", -1.0, 1.0],
         },
+        observables=["temp"],
     )
-    assert vocs.n_outputs == 4
+    assert vocs.n_outputs == 5

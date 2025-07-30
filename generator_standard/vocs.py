@@ -363,8 +363,6 @@ class VOCS(BaseModel):
 
     @property
     def constant_names(self) -> list[str]:
-        if self.constants is None:
-            return []
         return list(self.constants.keys())
 
     @property

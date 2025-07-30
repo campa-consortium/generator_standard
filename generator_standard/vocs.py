@@ -233,7 +233,6 @@ class VOCS(BaseModel):
     @field_validator("variables", mode="before")
     def validate_variables(cls, v):
         assert isinstance(v, dict)
-        assert len(v), "variables must not be empty."
         for name, val in v.items():
             if isinstance(val, BaseVariable):
                 v[name] = val

@@ -328,7 +328,7 @@ class VOCS(BaseModel):
 
     @property
     def bounds(self) -> list:
-        return [v for _, v in self.variables.items()]
+        return [v.domain for _, v in self.variables.items()]
 
     @property
     def variable_names(self) -> list[str]:

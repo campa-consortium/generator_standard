@@ -39,7 +39,7 @@ def test_discrete_variable_empty_fail():
 
 
 def test_invalid_continuous_bounds_list():
-    with pytest.raises(ValidationError, match="must have 2 elements"):
+    with pytest.raises(ValueError, match="must have two elements"):
         VOCS(variables={"x": [0.5]}, objectives={})
 
 

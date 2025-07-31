@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any
+from typing import Any, Union, Optional, Tuple
 
 from pydantic import (
     ConfigDict,
@@ -222,7 +222,7 @@ class VOCS(BaseModel):
     constants: dict[str, Any] = Field(
         default={}, description="constant names and values passed to evaluate function"
     )
-    observables: set[str] = Field(
+    observables: Union[set[str], dict[str, Any]] = Field(
         default=set(),
         description="observation names tracked alongside objectives and constraints",
     )
@@ -315,8 +315,16 @@ class VOCS(BaseModel):
                     )
             else:
                 raise ValueError(f"objective input type {type(val)} not supported")
-
         return v
+
+    @field_validator("observables", mode="before")
+    def validate_observables(cls, v):
+        if isinstance(v, (set, list)):
+            return set(v) if isinstance(v, list) else v
+        elif isinstance(v, dict):
+            return v
+        else:
+            raise ValueError(f"observables input type {type(v)} not supported")
 
     @field_serializer("variables", "constraints")
     def serialize_objects(self, v):

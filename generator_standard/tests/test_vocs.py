@@ -39,7 +39,7 @@ def test_discrete_variable_empty_fail():
 
 
 def test_invalid_continuous_bounds_list():
-    with pytest.raises(ValueError, match="must have 2 elements"):
+    with pytest.raises(ValueError, match="must have two elements"):
         VOCS(variables={"x": [0.5]}, objectives={})
 
 
@@ -156,9 +156,9 @@ def test_vocs_1a():
 def check_objectives(vocs):
     expected = {"f": "MINIMIZE", "f2": "MAXIMIZE", "f3": "EXPLORE"}
     for key, val in expected.items():
-        assert vocs.objectives[key] == val, (
-            f"{key} expected {val}, got {vocs.objectives[key]}"
-        )
+        assert (
+            vocs.objectives[key] == val
+        ), f"{key} expected {val}, got {vocs.objectives[key]}"
 
 
 def test_vocs_2():
@@ -270,3 +270,114 @@ def test_vocs_serialization_deserialization():
 
     # Check if the deserialized object matches the original
     assert vocs_deserialized == vocs
+
+
+def test_bounds_property():
+    vocs = VOCS(variables={"x": [0, 1], "y": [2, 4]})
+    assert vocs.bounds == [[0, 1], [2, 4]]
+
+
+def test_variable_names_property():
+    vocs = VOCS(variables={"x": [0, 1], "y": [2, 4]})
+    assert vocs.variable_names == ["x", "y"]
+
+
+def test_objective_names_property():
+    vocs = VOCS(
+        variables={"x": [0, 1], "y": [2, 4]},
+        objectives={"f1": "MINIMIZE", "f2": "MAXIMIZE", "f3": "EXPLORE"},
+    )
+    assert vocs.objective_names == ["f1", "f2", "f3"]
+
+
+def test_constraint_names_property():
+    vocs = VOCS(
+        variables={"x": [0, 1], "y": [2, 4]},
+        constraints={
+            "c1": ["GREATER_THAN", 0.0],
+            "c2": ["LESS_THAN", 2.0],
+            "c3": ["BOUNDS", -1.0, 1.0],
+        },
+    )
+    assert vocs.constraint_names == ["c1", "c2", "c3"]
+
+    vocs = VOCS(variables={"x": [0, 1], "y": [2, 4]})
+    assert vocs.constraint_names == []
+
+
+def test_output_names_property():
+    vocs = VOCS(
+        variables={"x": [0, 1], "y": [2, 4]},
+        objectives={"f1": "MINIMIZE"},
+        constraints={
+            "c1": ["GREATER_THAN", 0.0],
+            "c2": ["LESS_THAN", 2.0],
+            "c3": ["BOUNDS", -1.0, 1.0],
+        },
+        observables=["temp"],
+    )
+    assert vocs.output_names == ["f1", "c1", "c2", "c3", "temp"]
+
+
+def test_constant_names_property():
+    vocs = VOCS(variables={"x": [0, 1], "y": [2, 4]}, constants={"alpha": 1.0})
+    assert vocs.constant_names == ["alpha"]
+
+    vocs = VOCS(variables={"x": [0, 1], "y": [2, 4]})
+    assert vocs.constant_names == []
+
+
+def test_all_names_property():
+    vocs = VOCS(variables={"x": [0, 1], "y": [2, 4]}, constants={"alpha": 1.0})
+    assert vocs.all_names == ["x", "y", "alpha"]
+
+
+def test_n_variables_property():
+    vocs = VOCS(variables={"x": [0, 1], "y": [2, 4]})
+    assert vocs.n_variables == 2
+
+
+def test_n_constants_property():
+    vocs = VOCS(variables={"x": [0, 1], "y": [2, 4]}, constants={"alpha": 1.0})
+    assert vocs.n_constants == 1
+
+
+def test_n_inputs_property():
+    vocs = VOCS(variables={"x": [0, 1], "y": [2, 4]}, constants={"alpha": 1.0})
+    assert vocs.n_inputs == 3
+
+
+def test_n_objectives_property():
+    vocs = VOCS(variables={"x": [0, 1], "y": [2, 4]}, objectives={"f1": "MINIMIZE"})
+    assert vocs.n_objectives == 1
+
+
+def test_n_constraints_property():
+    vocs = VOCS(
+        variables={"x": [0, 1], "y": [2, 4]},
+        constraints={
+            "c1": ["GREATER_THAN", 0.0],
+            "c2": ["LESS_THAN", 2.0],
+            "c3": ["BOUNDS", -1.0, 1.0],
+        },
+    )
+    assert vocs.n_constraints == 3
+
+
+def test_n_observables_property():
+    vocs = VOCS(variables={"x": [0, 1], "y": [2, 4]}, observables=["temp"])
+    assert vocs.n_observables == 1
+
+
+def test_n_outputs_property():
+    vocs = VOCS(
+        variables={"x": [0, 1], "y": [2, 4]},
+        objectives={"f1": "MINIMIZE"},
+        constraints={
+            "c1": ["GREATER_THAN", 0.0],
+            "c2": ["LESS_THAN", 2.0],
+            "c3": ["BOUNDS", -1.0, 1.0],
+        },
+        observables=["temp"],
+    )
+    assert vocs.n_outputs == 5

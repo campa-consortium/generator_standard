@@ -125,7 +125,6 @@ class VOCS(BaseModel):
 
                 - A two-element list, representing bounds.
                 - A set of discrete values, with curly-braces.
-                - A single integer.
 
             .. code-block:: python
                 :linenos:
@@ -135,8 +134,6 @@ class VOCS(BaseModel):
                 vocs = VOCS(variables={"x": [0.0, 1.0]})
                 ...
                 vocs = VOCS(variables={"x": {0, 1, 2, "/usr", "/home", "/bin"}})
-                ...
-                vocs = VOCS(variables={"x": 32})
 
 
         .. tab-item:: objectives
@@ -242,7 +239,7 @@ class VOCS(BaseModel):
             elif isinstance(val, list):
                 if len(val) != 2:
                     raise ValueError(
-                        f"variable {val} is not correctly specified, must have 2 elements"
+                        f"variable {val} is not correctly specified, must have two elements representing upper and lower bounds."
                     )
                 v[name] = ContinuousVariable(domain=val)
             elif isinstance(val, set):
@@ -258,7 +255,7 @@ class VOCS(BaseModel):
                 v[name] = class_(**val)
 
             else:
-                raise ValueError(f"variable input type {type(val)} not supported")
+                raise ValueError(f"variable input type {type(val)} not supported. Must be a list of two elements representing upper and lower bounds *or* a set of possible values to sample.")
 
         return v
 
@@ -328,3 +325,74 @@ class VOCS(BaseModel):
             output[name] = val.model_dump() | {"type": type(val).__name__}
 
         return output
+
+    @property
+    def bounds(self) -> list:
+        return [v.domain for _, v in self.variables.items()]
+
+    @property
+    def variable_names(self) -> list[str]:
+        return list(self.variables.keys())
+
+    @property
+    def objective_names(self) -> list[str]:
+        return list(self.objectives.keys())
+
+    @property
+    def constraint_names(self) -> list[str]:
+        if not self.constraints:
+            return []
+        return list(self.constraints.keys())
+
+    @property
+    def observable_names(self) -> list[str]:
+        return self.observables
+
+    @property
+    def output_names(self) -> list[str]:
+        full_list = self.objective_names
+        for ele in self.constraint_names:
+            if ele not in full_list:
+                full_list += [ele]
+
+        for ele in self.observable_names:
+            if ele not in full_list:
+                full_list += [ele]
+
+        return full_list
+
+    @property
+    def constant_names(self) -> list[str]:
+        return list(self.constants.keys())
+
+    @property
+    def all_names(self) -> list[str]:
+        return self.variable_names + self.constant_names + self.output_names
+
+    @property
+    def n_variables(self) -> int:
+        return len(self.variables)
+
+    @property
+    def n_constants(self) -> int:
+        return len(self.constants)
+
+    @property
+    def n_inputs(self) -> int:
+        return self.n_variables + self.n_constants
+
+    @property
+    def n_objectives(self) -> int:
+        return len(self.objectives)
+
+    @property
+    def n_constraints(self) -> int:
+        return len(self.constraints)
+
+    @property
+    def n_observables(self) -> int:
+        return len(self.observables)
+
+    @property
+    def n_outputs(self) -> int:
+        return len(self.output_names)

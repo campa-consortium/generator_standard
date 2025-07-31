@@ -1,7 +1,7 @@
 
-======================
-README / Specification
-======================
+==================
+Generator Standard
+==================
 
 .. include:: ../README.md
     :parser: myst_parser.sphinx_
@@ -14,3 +14,4 @@ README / Specification
 
     generator
     vocs
+    patterns

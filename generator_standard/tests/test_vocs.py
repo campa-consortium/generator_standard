@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 from generator_standard.vocs import (
+    Variable,
     ContinuousVariable,
     DiscreteVariable,
     VOCS,
@@ -381,3 +382,30 @@ def test_n_outputs_property():
         observables=["temp"],
     )
     assert vocs.n_outputs == 5
+
+def test_vocs_with_class_reps():
+
+    var0 = Variable(
+        name="x0",
+        default_value=1.0,
+        dtype=float,
+    )
+    assert isinstance(var0, Variable)
+
+    var1 = Variable(
+        name="x1",
+        default_value=2.0,
+        domain=[0.0, 4.0],
+    )
+    assert isinstance(var1, ContinuousVariable)
+
+    var2 = Variable(
+        name="x2",
+        dtype=int,
+        default_value=2,
+        values={1, 2, 3},
+    )
+    assert isinstance(var2, DiscreteVariable)
+
+    vocs = VOCS(variables=(var0, var1, var2))
+    assert vocs.n_variables == 3

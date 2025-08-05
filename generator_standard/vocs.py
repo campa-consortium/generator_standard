@@ -13,7 +13,11 @@ from pydantic import (
 )
 
 
-class BaseVariable(BaseModel):
+class BaseField(BaseModel):
+    dtype: Optional[str] = None
+
+
+class BaseVariable(BaseField):
     default_value: float | None = None
 
 
@@ -38,7 +42,7 @@ class DiscreteVariable(BaseVariable):
     )
 
 
-class BaseConstraint(BaseModel):
+class BaseConstraint(BaseField):
     pass
 
 
@@ -70,6 +74,10 @@ class BoundsConstraint(BaseConstraint):
     def check(self, x: float) -> bool:
         lo, hi = self.range
         return lo <= x <= hi  # open both ends
+
+
+class BaseConstant(BaseField):
+    value: Any
 
 
 CONSTRAINT_CLASSES = {
@@ -106,123 +114,28 @@ class ObjectiveTypeEnum(str, Enum):
                 return member
 
 
-VariableType = ContinuousVariable | DiscreteVariable
+class BaseObjective(BaseField):
+    direction: ObjectiveTypeEnum
+
+
+
 
 
 class VOCS(BaseModel):
     """
     Variables, Objectives, Constraints, and other Settings (VOCS) data structure
     to describe optimization problems.
-
-    .. tab-set::
-
-        .. tab-item:: variables
-
-            Names and settings for input parameters for passing to an objective
-            function to solve the optimization problem.
-
-            A **dictionary** with **keys** being variable names (as strings) and **values** as either:
-
-                - A two-element list, representing bounds.
-                - A set of discrete values, with curly-braces.
-                - A single integer.
-
-            .. code-block:: python
-                :linenos:
-
-                from generator_standard.vocs import VOCS
-
-                vocs = VOCS(variables={"x": [0.0, 1.0]})
-                ...
-                vocs = VOCS(variables={"x": {0, 1, 2, "/usr", "/home", "/bin"}})
-                ...
-                vocs = VOCS(variables={"x": 32})
-
-
-        .. tab-item:: objectives
-
-            Names of objective function outputs, and guidance for the direction of optimization.
-
-            A **dictionary** with **keys** being objective names (as strings) and **values** as either:
-
-                - ``"MINIMIZE"``
-                - ``"MAXIMIZE"``
-                - ``"EXPLORE"``
-
-            .. code-block:: python
-                :linenos:
-
-                from generator_standard.vocs import VOCS
-
-                vocs = VOCS(objectives={"f": "MINIMIZE"})
-                ...
-                vocs = VOCS(objectives={"f": "MAXIMIZE"})
-                ...
-                vocs = VOCS(objectives={"f": "EXPLORE"})
-
-
-        .. tab-item:: constraints
-
-            Names of function outputs that and their category of constraint that must be satisfied for
-            a valid solution to the optimization problem.
-
-            A **dictionary** with **keys** being constraint names (as strings) and **values** as a length-2 list
-            with the first element being ``"LESS_THAN"``, ``"GREATER_THAN"``, or ``"BOUNDS"``.
-
-            The second element depends on the type of constraint:
-                - If ``"BOUNDS"``, a two-element list of floats, representing boundaries.
-                - If ``"LESS_THAN"``, or ``"GREATER_THAN"``, a single float value.
-
-            .. code-block:: python
-                :linenos:
-
-                from generator_standard.vocs import VOCS
-
-                vocs = VOCS(constraints={"c": ["LESS_THAN", 1.0]})
-                ...
-                vocs = VOCS(constraints={"c": ["GREATER_THAN", 0.0]})
-                ...
-                vocs = VOCS(constraints={"c": ["BOUNDS", [0.0, 1.0]]})
-
-
-        .. tab-item:: constants
-
-            Names and values of constants for passing alongside `variables` to the objective function.
-
-            A **dictionary** with **keys** being constant names (as strings) and **values** as any type.
-
-            .. code-block:: python
-                :linenos:
-
-                from generator_standard.vocs import VOCS
-
-                vocs = VOCS(constants={"alpha": 1.0, "beta": 2.0})
-
-        .. tab-item:: observables
-
-            Names of other objective function outputs that will be passed
-            to the optimizer (alongside the `objectives` and `constraints`).
-
-            A **set** of strings.
-
-            .. code-block:: python
-                :linenos:
-
-                from generator_standard.vocs import VOCS
-
-                vocs = VOCS(observables={"temp", "temp2"})
-
     """
 
-    variables: dict[str, VariableType]
-    objectives: dict[str, ObjectiveTypeEnum] = Field(
+    variables: dict[str, BaseVariable]
+    objectives: dict[str, BaseObjective] = Field(
         default={}, description="objective names with type of objective"
     )
     constraints: dict[str, BaseConstraint] = Field(
         default={},
         description="constraint names with a list of constraint type and value",
     )
-    constants: dict[str, Any] = Field(
+    constants: dict[str, BaseConstant] = Field(
         default={}, description="constant names and values passed to evaluate function"
     )
     observables: Union[set[str], dict[str, Any]] = Field(
@@ -307,17 +220,45 @@ class VOCS(BaseModel):
     def validate_objectives(cls, v):
         assert isinstance(v, dict)
         for name, val in v.items():
-            if isinstance(val, ObjectiveTypeEnum):
+            if isinstance(val, BaseObjective):
                 v[name] = val
+            elif isinstance(val, ObjectiveTypeEnum):
+                v[name] = BaseObjective(direction=val)
             elif isinstance(val, str):
                 try:
-                    v[name] = ObjectiveTypeEnum(val.upper())
+                    v[name] = BaseObjective(direction=ObjectiveTypeEnum(val.upper()))
                 except ValueError:
                     raise ValueError(
                         f"Objective type '{val}' is not supported for '{name}'."
                     )
+            elif isinstance(val, dict):
+                # Handle deserialized BaseObjective
+                if "type" in val and val["type"] == "BaseObjective":
+                    v[name] = BaseObjective(**val)
+                else:
+                    raise ValueError(f"objective {val} is not correctly specified")
             else:
                 raise ValueError(f"objective input type {type(val)} not supported")
+        return v
+
+    @field_validator("constants", mode="before")
+    def validate_constants(cls, v):
+        assert isinstance(v, dict)
+        for name, val in v.items():
+            if isinstance(val, BaseConstant):
+                v[name] = val
+            elif isinstance(val, dict):
+                constant_type = val.pop("type")
+                try:
+                    class_ = globals()[constant_type]
+                except KeyError:
+                    raise ValueError(
+                        f"constant type {constant_type} is not available"
+                    )
+                v[name] = class_(**val)
+            else:
+                # For backward compatibility, wrap raw values in BaseConstant
+                v[name] = BaseConstant(value=val)
         return v
 
     @field_validator("observables", mode="before")
@@ -329,10 +270,18 @@ class VOCS(BaseModel):
         else:
             raise ValueError(f"observables input type {type(v)} not supported")
 
-    @field_serializer("variables", "constraints")
+    @field_serializer("variables", "constraints", "objectives", "constants")
     def serialize_objects(self, v):
         output = {}
         for name, val in v.items():
             output[name] = val.model_dump() | {"type": type(val).__name__}
 
         return output
+
+    @field_serializer("observables")
+    def serialize_observables(self, v):
+        if isinstance(v, set):
+            return list(v)
+        elif isinstance(v, dict):
+            return v
+        return v

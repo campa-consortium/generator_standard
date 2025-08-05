@@ -26,7 +26,8 @@ class RandomGenerator(Generator):
         """Suggest points from the generator"""
         if num_points is None:
             num_points = 1
-        max_pts = self.vocs.constants.get("max_points")
+        max_pts_const = self.vocs.constants.get("max_points")
+        max_pts = max_pts_const.value if max_pts_const else None
         if max_pts is not None and num_points > max_pts:
             raise ValueError(f"Cannot supply more than {max_pts} points")
 
@@ -52,7 +53,7 @@ class RandomGenerator(Generator):
                 self.data.append(r)
 
         # Set the best point
-        direction = self.vocs.objectives["f"]
+        direction = self.vocs.objectives["f"].direction
         for r in self.data:
             val = r.get("f")
             if self.best_point is None:
@@ -175,5 +176,5 @@ def test_gen_with_constraints():
     expected = {'x': 4.21, 'y': -2.41, 'f': 23.50, 'temp': 6.62, 'c': 6.62, 'c1': 1.79, 'c2': -4.82}
     actual = {k: round(gen.data[0][k], 2) for k in expected}
     assert actual == expected
-    assert list(gen.vocs.objectives.values())[0] == "MINIMIZE"
+    assert list(gen.vocs.objectives.values())[0].direction == "MINIMIZE"
     gen.finalize()

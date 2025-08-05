@@ -107,7 +107,7 @@ def test_unsupported_constraint_type():
 
 def test_objective_enum_case_insensitive():
     vocs = VOCS(variables={"x": [0.0, 1.0]}, objectives={"f": "minimize"})
-    assert vocs.objectives["f"] == "MINIMIZE"
+    assert vocs.objectives["f"].direction == "MINIMIZE"
 
 
 def test_invalid_objective_enum_value():
@@ -134,9 +134,9 @@ def test_vocs_1():
     )
     assert isinstance(vocs.variables["x"], ContinuousVariable)
     assert vocs.variables["x"].domain == [0.5, 1.0]
-    assert vocs.objectives["f"] == "MINIMIZE"
-    assert vocs.constants["alpha"] == 1.0
-    assert vocs.constants["beta"] == 2.0
+    assert vocs.objectives["f"].direction == "MINIMIZE"
+    assert vocs.constants["alpha"].value == 1.0
+    assert vocs.constants["beta"].value == 2.0
     assert "temp" in vocs.observables
     assert "temp2" in vocs.observables
 
@@ -159,8 +159,8 @@ def test_vocs_1a():
 def check_objectives(vocs):
     expected = {"f": "MINIMIZE", "f2": "MAXIMIZE", "f3": "EXPLORE"}
     for key, val in expected.items():
-        assert vocs.objectives[key] == val, (
-            f"{key} expected {val}, got {vocs.objectives[key]}"
+        assert vocs.objectives[key].direction == val, (
+            f"{key} expected {val}, got {vocs.objectives[key].direction}"
         )
 
 

@@ -76,10 +76,6 @@ class BoundsConstraint(BaseConstraint):
         return lo <= x <= hi  # open both ends
 
 
-class BaseConstant(BaseField):
-    value: Any
-
-
 CONSTRAINT_CLASSES = {
     "LESS_THAN": LessThanConstraint,
     "GREATER_THAN": GreaterThanConstraint,
@@ -135,6 +131,10 @@ OBJECTIVE_CLASSES = {
     "MAXIMIZE": MaximizeObjective,
     "EXPLORE": ExploreObjective,
 }
+
+
+class BaseConstant(BaseField):
+    value: Any
 
 
 class Observable(BaseField):

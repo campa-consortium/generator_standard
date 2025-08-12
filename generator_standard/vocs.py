@@ -115,10 +115,26 @@ class ObjectiveTypeEnum(str, Enum):
 
 
 class BaseObjective(BaseField):
-    direction: ObjectiveTypeEnum
+    pass
 
 
+class MinimizeObjective(BaseObjective):
+    pass
 
+
+class MaximizeObjective(BaseObjective):
+    pass
+
+
+class ExploreObjective(BaseObjective):
+    pass
+
+
+OBJECTIVE_CLASSES = {
+    "MINIMIZE": MinimizeObjective,
+    "MAXIMIZE": MaximizeObjective,
+    "EXPLORE": ExploreObjective,
+}
 
 
 class VOCS(BaseModel):
@@ -223,18 +239,27 @@ class VOCS(BaseModel):
             if isinstance(val, BaseObjective):
                 v[name] = val
             elif isinstance(val, ObjectiveTypeEnum):
-                v[name] = BaseObjective(direction=val)
+                v[name] = OBJECTIVE_CLASSES[val.value]()
             elif isinstance(val, str):
-                try:
-                    v[name] = BaseObjective(direction=ObjectiveTypeEnum(val.upper()))
-                except ValueError:
+                key = val.upper()
+                if key in OBJECTIVE_CLASSES:
+                    v[name] = OBJECTIVE_CLASSES[key]()
+                else:
                     raise ValueError(
                         f"Objective type '{val}' is not supported for '{name}'."
                     )
             elif isinstance(val, dict):
-                # Handle deserialized BaseObjective
-                if "type" in val and val["type"] == "BaseObjective":
-                    v[name] = BaseObjective(**val)
+                if "type" in val:
+                    obj_type = val.pop("type")
+                    try:
+                        class_ = globals()[obj_type]
+                        if not issubclass(class_, BaseObjective):
+                            raise KeyError
+                        v[name] = class_(**val)
+                    except KeyError:
+                        raise ValueError(
+                            f"Objective type '{obj_type}' is not available"
+                        )
                 else:
                     raise ValueError(f"objective {val} is not correctly specified")
             else:

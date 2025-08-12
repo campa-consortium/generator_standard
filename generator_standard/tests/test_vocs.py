@@ -9,6 +9,9 @@ from generator_standard.vocs import (
     LessThanConstraint,
     ConstraintTypeEnum,
     ObjectiveTypeEnum,
+    MinimizeObjective,
+    MaximizeObjective,
+    ExploreObjective,
 )
 
 
@@ -107,7 +110,7 @@ def test_unsupported_constraint_type():
 
 def test_objective_enum_case_insensitive():
     vocs = VOCS(variables={"x": [0.0, 1.0]}, objectives={"f": "minimize"})
-    assert vocs.objectives["f"].direction == "MINIMIZE"
+    assert isinstance(vocs.objectives["f"], MinimizeObjective)
 
 
 def test_invalid_objective_enum_value():
@@ -134,7 +137,7 @@ def test_vocs_1():
     )
     assert isinstance(vocs.variables["x"], ContinuousVariable)
     assert vocs.variables["x"].domain == [0.5, 1.0]
-    assert vocs.objectives["f"].direction == "MINIMIZE"
+    assert isinstance(vocs.objectives["f"], MinimizeObjective)
     assert vocs.constants["alpha"].value == 1.0
     assert vocs.constants["beta"].value == 2.0
     assert "temp" in vocs.observables
@@ -157,10 +160,10 @@ def test_vocs_1a():
 
 
 def check_objectives(vocs):
-    expected = {"f": "MINIMIZE", "f2": "MAXIMIZE", "f3": "EXPLORE"}
+    expected = {"f": MinimizeObjective, "f2": MaximizeObjective, "f3": ExploreObjective}
     for key, val in expected.items():
-        assert vocs.objectives[key].direction == val, (
-            f"{key} expected {val}, got {vocs.objectives[key].direction}"
+        assert isinstance(vocs.objectives[key], val), (
+            f"{key} expected {val}, got {type(vocs.objectives[key])}"
         )
 
 

@@ -137,6 +137,10 @@ OBJECTIVE_CLASSES = {
 }
 
 
+class Observable(BaseField):
+    pass
+
+
 class VOCS(BaseModel):
     """
     Variables, Objectives, Constraints, and other Settings (VOCS) data structure
@@ -154,7 +158,7 @@ class VOCS(BaseModel):
     constants: dict[str, BaseConstant] = Field(
         default={}, description="constant names and values passed to evaluate function"
     )
-    observables: Union[set[str], dict[str, Any]] = Field(
+    observables: Union[set[str], dict[str, Observable]] = Field(
         default=set(),
         description="observation names tracked alongside objectives and constraints",
     )
@@ -291,7 +295,13 @@ class VOCS(BaseModel):
         if isinstance(v, (set, list)):
             return set(v) if isinstance(v, list) else v
         elif isinstance(v, dict):
-            return v
+            output = {}
+            for name, val in v.items():
+                if isinstance(val, Observable):
+                    output[name] = val
+                else:
+                    output[name] = Observable(dtype=val)
+            return output
         else:
             raise ValueError(f"observables input type {type(v)} not supported")
 
@@ -302,3 +312,14 @@ class VOCS(BaseModel):
             output[name] = val.model_dump() | {"type": type(val).__name__}
 
         return output
+
+    @field_serializer("observables")
+    def serialize_observables(self, v):
+        if isinstance(v, set):
+            return list(v)
+        elif isinstance(v, dict):
+            output = {}
+            for name, val in v.items():
+                output[name] = val.model_dump() | {"type": type(val).__name__}
+            return output
+        return v

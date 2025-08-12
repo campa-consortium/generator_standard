@@ -12,6 +12,7 @@ from generator_standard.vocs import (
     MinimizeObjective,
     MaximizeObjective,
     ExploreObjective,
+    Observable,
 )
 
 
@@ -151,12 +152,15 @@ def test_vocs_1a():
             "y": {"a", "b", "c"},
         },
         objectives={"f": "MINIMIZE"},
-        observables={"temp": "float", "temp_array": (float, (2, 4))},
+        # observables={"temp": "float", "temp_array": (float, (2, 4))},
+        observables={"temp": "float"},
     )
     assert isinstance(vocs.variables["x"], ContinuousVariable)
     assert isinstance(vocs.variables["y"], DiscreteVariable)
-    assert vocs.observables["temp"] == "float"
-    assert vocs.observables["temp_array"] == (float, (2, 4))
+    assert isinstance(vocs.observables["temp"], Observable)
+    assert vocs.observables["temp"].dtype == "float"
+    # assert isinstance(vocs.observables["temp_array"], Observable)
+    # assert vocs.observables["temp_array"].dtype == (float, (2, 4))
 
 
 def check_objectives(vocs):

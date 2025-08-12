@@ -302,11 +302,3 @@ class VOCS(BaseModel):
             output[name] = val.model_dump() | {"type": type(val).__name__}
 
         return output
-
-    @field_serializer("observables")
-    def serialize_observables(self, v):
-        if isinstance(v, set):
-            return list(v)
-        elif isinstance(v, dict):
-            return v
-        return v

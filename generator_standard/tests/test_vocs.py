@@ -13,6 +13,7 @@ from generator_standard.vocs import (
     MaximizeObjective,
     ExploreObjective,
     Observable,
+    BaseConstant,
 )
 
 
@@ -282,3 +283,114 @@ def test_vocs_serialization_deserialization():
 
     # Check if the deserialized object matches the original
     assert vocs_deserialized == vocs
+
+
+def test_vocs_set_observables_serialization():
+    vocs = VOCS(
+        variables={"x": [0, 1]},
+        observables={"temp", "temp2"}
+    )
+    model = vocs.model_dump()
+    vocs_deserialized = VOCS.model_validate(model)
+    assert vocs_deserialized == vocs
+
+
+def test_vocs_observable_object_input():
+    vocs = VOCS(
+        variables={"x": [0, 1]},
+        observables={"temp": Observable(dtype="float")}
+    )
+    assert isinstance(vocs.observables["temp"], Observable)
+    assert vocs.observables["temp"].dtype == "float"
+
+
+def test_invalid_observables_input():
+    try:
+        VOCS(
+            variables={"x": [0, 1]},
+            observables=123  # invalid type
+        )
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "observables input type" in str(e)
+
+
+def test_objective_object_input():
+    vocs = VOCS(
+        variables={"x": [0, 1]},
+        objectives={"f": MinimizeObjective()}
+    )
+    assert isinstance(vocs.objectives["f"], MinimizeObjective)
+
+
+def test_objective_dict_with_invalid_type():
+    try:
+        VOCS(
+            variables={"x": [0, 1]},
+            objectives={"f": {"type": "InvalidObjective"}}
+        )
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "not available" in str(e)
+
+
+def test_objective_dict_missing_type():
+    try:
+        VOCS(
+            variables={"x": [0, 1]},
+            objectives={"f": {"some_field": "value"}}
+        )
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "not correctly specified" in str(e)
+
+
+def test_objective_invalid_input_type():
+    try:
+        VOCS(
+            variables={"x": [0, 1]},
+            objectives={"f": 123}
+        )
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "not supported" in str(e)
+
+
+def test_constant_object_input():
+    vocs = VOCS(
+        variables={"x": [0, 1]},
+        constants={"c": BaseConstant(value=5)}
+    )
+    assert isinstance(vocs.constants["c"], BaseConstant)
+
+
+def test_constant_dict_with_invalid_type():
+    try:
+        VOCS(
+            variables={"x": [0, 1]},
+            constants={"c": {"type": "InvalidConstant", "value": 5}}
+        )
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "not available" in str(e)
+
+
+def test_objective_dict_with_non_objective_class():
+    try:
+        VOCS(
+            variables={"x": [0, 1]},
+            objectives={"f": {"type": "BaseConstant"}}  # Valid class but not BaseObjective
+        )
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "not available" in str(e)
+
+
+def test_constant_dict_construction():
+    vocs = VOCS(
+        variables={"x": [0, 1]},
+        constants={"c": {"type": "BaseConstant", "value": 42}}
+    )
+    assert isinstance(vocs.constants["c"], BaseConstant)
+    assert vocs.constants["c"].value == 42
+    

@@ -286,7 +286,6 @@ class VOCS(BaseModel):
                     )
                 v[name] = class_(**val)
             else:
-                # For backward compatibility, wrap raw values in BaseConstant
                 v[name] = BaseConstant(value=val)
         return v
 
@@ -313,16 +312,14 @@ class VOCS(BaseModel):
         output = {}
         for name, val in v.items():
             output[name] = val.model_dump() | {"type": type(val).__name__}
-
         return output
 
     @field_serializer("observables")
     def serialize_observables(self, v):
         if isinstance(v, set):
             return list(v)
-        elif isinstance(v, dict):
+        else:
             output = {}
             for name, val in v.items():
                 output[name] = val.model_dump() | {"type": type(val).__name__}
             return output
-        return v

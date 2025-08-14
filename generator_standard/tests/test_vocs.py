@@ -270,6 +270,8 @@ def test_vocs_serialization_deserialization():
             "c1": ["LESS_THAN", 2.0],
             "c2": ["BOUNDS", -1.0, 1.0],
         },
+        # observables=["temp"],
+        observables={"temp": "float", "temp2": "int"},        
     )
 
     # Serialize to JSON

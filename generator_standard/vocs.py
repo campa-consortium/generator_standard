@@ -299,6 +299,9 @@ class VOCS(BaseModel):
             for name, val in v.items():
                 if isinstance(val, Observable):
                     output[name] = val
+                elif isinstance(val, dict):
+                    val.pop("type", None)
+                    output[name] = Observable(**val)
                 else:
                     output[name] = Observable(dtype=val)
             return output

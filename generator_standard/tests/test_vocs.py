@@ -305,14 +305,11 @@ def test_vocs_observable_object_input():
 
 
 def test_invalid_observables_input():
-    try:
+    with pytest.raises(ValueError, match="observables input type"):
         VOCS(
             variables={"x": [0, 1]},
             observables=123  # invalid type
         )
-        assert False, "Should have raised ValueError"
-    except ValueError as e:
-        assert "observables input type" in str(e)
 
 
 def test_objective_object_input():
@@ -324,36 +321,27 @@ def test_objective_object_input():
 
 
 def test_objective_dict_with_invalid_type():
-    try:
+    with pytest.raises(ValueError, match="not available"):
         VOCS(
             variables={"x": [0, 1]},
             objectives={"f": {"type": "InvalidObjective"}}
         )
-        assert False, "Should have raised ValueError"
-    except ValueError as e:
-        assert "not available" in str(e)
 
 
 def test_objective_dict_missing_type():
-    try:
+    with pytest.raises(ValueError, match="not correctly specified"):
         VOCS(
             variables={"x": [0, 1]},
             objectives={"f": {"some_field": "value"}}
         )
-        assert False, "Should have raised ValueError"
-    except ValueError as e:
-        assert "not correctly specified" in str(e)
 
 
 def test_objective_invalid_input_type():
-    try:
+    with pytest.raises(ValueError, match="not supported"):
         VOCS(
             variables={"x": [0, 1]},
             objectives={"f": 123}
         )
-        assert False, "Should have raised ValueError"
-    except ValueError as e:
-        assert "not supported" in str(e)
 
 
 def test_constant_object_input():
@@ -365,25 +353,19 @@ def test_constant_object_input():
 
 
 def test_constant_dict_with_invalid_type():
-    try:
+    with pytest.raises(ValueError, match="not available"):
         VOCS(
             variables={"x": [0, 1]},
             constants={"c": {"type": "InvalidConstant", "value": 5}}
         )
-        assert False, "Should have raised ValueError"
-    except ValueError as e:
-        assert "not available" in str(e)
 
 
 def test_objective_dict_with_non_objective_class():
-    try:
+    with pytest.raises(ValueError, match="not available"):
         VOCS(
             variables={"x": [0, 1]},
             objectives={"f": {"type": "BaseConstant"}}  # Valid class but not BaseObjective
         )
-        assert False, "Should have raised ValueError"
-    except ValueError as e:
-        assert "not available" in str(e)
 
 
 def test_constant_dict_construction():

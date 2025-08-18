@@ -13,7 +13,6 @@ from pydantic import (
 )
 
 class Variable(BaseModel):
-    name: str = "x"
     dtype: Any = float
     default_value: float | None = None
 

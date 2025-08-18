@@ -13,7 +13,7 @@ from generator_standard.vocs import (
     MaximizeObjective,
     ExploreObjective,
     Observable,
-    BaseConstant,
+    Constant,
 )
 
 
@@ -347,9 +347,9 @@ def test_objective_invalid_input_type():
 def test_constant_object_input():
     vocs = VOCS(
         variables={"x": [0, 1]},
-        constants={"c": BaseConstant(value=5)}
+        constants={"c": Constant(value=5)}
     )
-    assert isinstance(vocs.constants["c"], BaseConstant)
+    assert isinstance(vocs.constants["c"], Constant)
 
 
 def test_constant_dict_with_invalid_type():
@@ -364,15 +364,15 @@ def test_objective_dict_with_non_objective_class():
     with pytest.raises(ValueError, match="not available"):
         VOCS(
             variables={"x": [0, 1]},
-            objectives={"f": {"type": "BaseConstant"}}  # Valid class but not BaseObjective
+            objectives={"f": {"type": "Constant"}}  # Valid class but not BaseObjective
         )
 
 
 def test_constant_dict_construction():
     vocs = VOCS(
         variables={"x": [0, 1]},
-        constants={"c": {"type": "BaseConstant", "value": 42}}
+        constants={"c": {"type": "Constant", "value": 42}}
     )
-    assert isinstance(vocs.constants["c"], BaseConstant)
+    assert isinstance(vocs.constants["c"], Constant)
     assert vocs.constants["c"].value == 42
     

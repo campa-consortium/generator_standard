@@ -133,7 +133,7 @@ OBJECTIVE_CLASSES = {
 }
 
 
-class BaseConstant(BaseField):
+class Constant(BaseField):
     value: Any
 
 
@@ -155,7 +155,7 @@ class VOCS(BaseModel):
         default={},
         description="constraint names with a list of constraint type and value",
     )
-    constants: dict[str, BaseConstant] = Field(
+    constants: dict[str, Constant] = Field(
         default={}, description="constant names and values passed to evaluate function"
     )
     observables: Union[set[str], dict[str, Observable]] = Field(
@@ -274,7 +274,7 @@ class VOCS(BaseModel):
     def validate_constants(cls, v):
         assert isinstance(v, dict)
         for name, val in v.items():
-            if isinstance(val, BaseConstant):
+            if isinstance(val, Constant):
                 v[name] = val
             elif isinstance(val, dict):
                 constant_type = val.pop("type")
@@ -286,7 +286,7 @@ class VOCS(BaseModel):
                     )
                 v[name] = class_(**val)
             else:
-                v[name] = BaseConstant(value=val)
+                v[name] = Constant(value=val)
         return v
 
     @field_validator("observables", mode="before")

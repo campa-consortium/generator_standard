@@ -277,7 +277,8 @@ class VOCS(BaseModel):
             elif isinstance(val, list):
                 if len(val) != 2:
                     raise ValueError(
-                        f"variable {val} is not correctly specified, must have two elements representing upper and lower bounds."
+                        f"variable {val} is not correctly specified, "
+                        f"must have two elements representing upper and lower bounds."
                     )
                 v[name] = ContinuousVariable(domain=val)
             elif isinstance(val, set):
@@ -293,7 +294,11 @@ class VOCS(BaseModel):
                 v[name] = class_(**val)
 
             else:
-                raise ValueError(f"variable input type {type(val)} not supported. Must be a list of two elements representing upper and lower bounds *or* a set of possible values to sample.")
+                raise ValueError(
+                    f"variable input type {type(val)} not supported. "
+                    f"Must be a list of two elements representing upper and lower bounds "
+                    f"*or* a set of possible values to sample."
+                )
 
         return v
 

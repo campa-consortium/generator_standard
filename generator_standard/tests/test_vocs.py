@@ -9,6 +9,11 @@ from generator_standard.vocs import (
     LessThanConstraint,
     ConstraintTypeEnum,
     ObjectiveTypeEnum,
+    MinimizeObjective,
+    MaximizeObjective,
+    ExploreObjective,
+    Observable,
+    Constant,
 )
 
 
@@ -107,7 +112,7 @@ def test_unsupported_constraint_type():
 
 def test_objective_enum_case_insensitive():
     vocs = VOCS(variables={"x": [0.0, 1.0]}, objectives={"f": "minimize"})
-    assert vocs.objectives["f"] == "MINIMIZE"
+    assert isinstance(vocs.objectives["f"], MinimizeObjective)
 
 
 def test_invalid_objective_enum_value():
@@ -134,9 +139,9 @@ def test_vocs_1():
     )
     assert isinstance(vocs.variables["x"], ContinuousVariable)
     assert vocs.variables["x"].domain == [0.5, 1.0]
-    assert vocs.objectives["f"] == "MINIMIZE"
-    assert vocs.constants["alpha"] == 1.0
-    assert vocs.constants["beta"] == 2.0
+    assert isinstance(vocs.objectives["f"], MinimizeObjective)
+    assert vocs.constants["alpha"].value == 1.0
+    assert vocs.constants["beta"].value == 2.0
     assert "temp" in vocs.observables
     assert "temp2" in vocs.observables
 
@@ -148,17 +153,23 @@ def test_vocs_1a():
             "y": {"a", "b", "c"},
         },
         objectives={"f": "MINIMIZE"},
+        # observables={"temp": "float", "temp_array": (float, (2, 4))},
+        observables={"temp": "float"},
     )
     assert isinstance(vocs.variables["x"], ContinuousVariable)
     assert isinstance(vocs.variables["y"], DiscreteVariable)
+    assert isinstance(vocs.observables["temp"], Observable)
+    assert vocs.observables["temp"].dtype == "float"
+    # assert isinstance(vocs.observables["temp_array"], Observable)
+    # assert vocs.observables["temp_array"].dtype == (float, (2, 4))
 
 
 def check_objectives(vocs):
-    expected = {"f": "MINIMIZE", "f2": "MAXIMIZE", "f3": "EXPLORE"}
+    expected = {"f": MinimizeObjective, "f2": MaximizeObjective, "f3": ExploreObjective}
     for key, val in expected.items():
-        assert (
-            vocs.objectives[key] == val
-        ), f"{key} expected {val}, got {vocs.objectives[key]}"
+        assert isinstance(vocs.objectives[key], val), (
+            f"{key} expected {val}, got {type(vocs.objectives[key])}"
+        )
 
 
 def test_vocs_2():
@@ -260,6 +271,8 @@ def test_vocs_serialization_deserialization():
             "c1": ["LESS_THAN", 2.0],
             "c2": ["BOUNDS", -1.0, 1.0],
         },
+        # observables=["temp"],
+        observables={"temp": "float", "temp2": "int"},        
     )
 
     # Serialize to JSON
@@ -271,6 +284,98 @@ def test_vocs_serialization_deserialization():
     # Check if the deserialized object matches the original
     assert vocs_deserialized == vocs
 
+
+def test_vocs_set_observables_serialization():
+    vocs = VOCS(
+        variables={"x": [0, 1]},
+        observables={"temp", "temp2"}
+    )
+    model = vocs.model_dump()
+    vocs_deserialized = VOCS.model_validate(model)
+    assert vocs_deserialized == vocs
+
+
+def test_vocs_observable_object_input():
+    vocs = VOCS(
+        variables={"x": [0, 1]},
+        observables={"temp": Observable(dtype="float")}
+    )
+    assert isinstance(vocs.observables["temp"], Observable)
+    assert vocs.observables["temp"].dtype == "float"
+
+
+def test_invalid_observables_input():
+    with pytest.raises(ValueError, match="observables input type"):
+        VOCS(
+            variables={"x": [0, 1]},
+            observables=123  # invalid type
+        )
+
+
+def test_objective_object_input():
+    vocs = VOCS(
+        variables={"x": [0, 1]},
+        objectives={"f": MinimizeObjective()}
+    )
+    assert isinstance(vocs.objectives["f"], MinimizeObjective)
+
+
+def test_objective_dict_with_invalid_type():
+    with pytest.raises(ValueError, match="not available"):
+        VOCS(
+            variables={"x": [0, 1]},
+            objectives={"f": {"type": "InvalidObjective"}}
+        )
+
+
+def test_objective_dict_missing_type():
+    with pytest.raises(ValueError, match="not correctly specified"):
+        VOCS(
+            variables={"x": [0, 1]},
+            objectives={"f": {"some_field": "value"}}
+        )
+
+
+def test_objective_invalid_input_type():
+    with pytest.raises(ValueError, match="not supported"):
+        VOCS(
+            variables={"x": [0, 1]},
+            objectives={"f": 123}
+        )
+
+
+def test_constant_object_input():
+    vocs = VOCS(
+        variables={"x": [0, 1]},
+        constants={"c": Constant(value=5)}
+    )
+    assert isinstance(vocs.constants["c"], Constant)
+
+
+def test_constant_dict_with_invalid_type():
+    with pytest.raises(ValueError, match="not available"):
+        VOCS(
+            variables={"x": [0, 1]},
+            constants={"c": {"type": "InvalidConstant", "value": 5}}
+        )
+
+
+def test_objective_dict_with_non_objective_class():
+    with pytest.raises(ValueError, match="not available"):
+        VOCS(
+            variables={"x": [0, 1]},
+            objectives={"f": {"type": "Constant"}}  # Valid class but not BaseObjective
+        )
+
+
+def test_constant_dict_construction():
+    vocs = VOCS(
+        variables={"x": [0, 1]},
+        constants={"c": {"type": "Constant", "value": 42}}
+    )
+    assert isinstance(vocs.constants["c"], Constant)
+    assert vocs.constants["c"].value == 42
+    
 
 def test_bounds_property():
     vocs = VOCS(variables={"x": [0, 1], "y": [2, 4]})

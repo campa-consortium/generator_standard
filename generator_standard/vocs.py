@@ -18,10 +18,22 @@ class BaseField(BaseModel):
 
 
 class BaseVariable(BaseField):
+    dtype: Optional[str] = None
+
+
+class Variable(BaseModel):
+    dtype: Any = float
     default_value: float | None = None
 
+    def __new__(cls, **kwargs):
+        if "domain" in kwargs:
+            return super(Variable, ContinuousVariable).__new__(ContinuousVariable)
+        if "values" in kwargs:
+            return super(Variable, DiscreteVariable).__new__(DiscreteVariable)
+        return super().__new__(cls)
 
-class ContinuousVariable(BaseVariable):
+
+class ContinuousVariable(Variable):
     domain: conlist(float, min_length=2, max_length=2) = Field(
         description="domain of the variable, [min, max]"
     )
@@ -33,13 +45,24 @@ class ContinuousVariable(BaseVariable):
             raise ValueError(
                 "Bounds specified do not satisfy the condition value[1] > value[0]."
             )
+
+        if self.default_value is not None and (self.default_value < self.domain[0] or self.default_value > self.domain[1]):
+            raise ValueError("Default value must be within bounds.")
         return self
 
 
-class DiscreteVariable(BaseVariable):
+class DiscreteVariable(Variable):
     values: conset(Any, min_length=1) = Field(
         description="List of allowed discrete values"
     )
+
+    # check that default value and values are consistent
+    @model_validator(mode="after")
+    def validate_values(self):
+        if self.default_value is not None and self.default_value not in self.values:
+            raise ValueError("Default value must be in values.")
+
+        return self
 
 
 class BaseConstraint(BaseField):
@@ -139,6 +162,9 @@ class Constant(BaseField):
 
 class Observable(BaseField):
     pass
+
+
+VariableType = Variable | ContinuousVariable | DiscreteVariable
 
 
 class VOCS(BaseModel):
@@ -272,7 +298,7 @@ class VOCS(BaseModel):
     def validate_variables(cls, v):
         assert isinstance(v, dict)
         for name, val in v.items():
-            if isinstance(val, BaseVariable):
+            if isinstance(val, VariableType):
                 v[name] = val
             elif isinstance(val, list):
                 if len(val) != 2:

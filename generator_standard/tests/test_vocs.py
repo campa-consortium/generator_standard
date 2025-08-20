@@ -54,7 +54,7 @@ def test_discrete_variable_removes_duplicates():
 
 
 def test_invalid_variable_dict_type():
-    with pytest.raises(ValueError, match="not supported"):
+    with pytest.raises(ValidationError, match="not supported"):
         VOCS(variables={"x": 5.0}, objectives={})
 
 
@@ -100,6 +100,23 @@ def test_invalid_non_bounds_constraint_short_list():
             variables={"x": [0.0, 1.0]}, objectives={}, constraints={"c": ["LESS_THAN"]}
         )
 
+def test_adding_variables():
+    v = VOCS(variables={"x": [0.0, 1.0]}, objectives={})
+    v.variables["y"] = [0.0, 2.0]
+    assert isinstance(v.variables["y"], ContinuousVariable)
+    assert v.variables["y"].domain == [0.0, 2.0]
+
+    with pytest.raises(ValueError, match="not supported"):
+        v.variables["z"] = 5.0
+
+def test_adding_constraints():
+    v = VOCS(variables={"x": [0.0, 1.0]}, objectives={})
+    v.constraints["c"] = ["LESS_THAN", 0.0]
+    assert isinstance(v.constraints["c"], LessThanConstraint)
+    assert v.constraints["c"].value == 0.0
+
+    with pytest.raises(ValueError, match="not supported"):
+        v.constraints["c2"] = 5.0
 
 def test_unsupported_constraint_type():
     with pytest.raises(ValueError, match="not supported"):

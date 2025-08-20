@@ -1,15 +1,15 @@
+from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Union, Optional, Tuple
+from typing import Any, Optional
+from pydantic import BaseModel
 
 from pydantic import (
-    ConfigDict,
     conlist,
     conset,
     Field,
     field_validator,
     model_validator,
     BaseModel,
-    field_serializer,
 )
 
 
@@ -40,6 +40,55 @@ class DiscreteVariable(BaseVariable):
     values: conset(Any, min_length=1) = Field(
         description="List of allowed discrete values"
     )
+
+
+class ValidatedDict(dict, ABC):
+    def __init__(self, *args, **kwargs):
+        raw = dict(*args, **kwargs)  # collect initial data
+        super().__init__()  # start with empty dict
+        for k, v in raw.items():
+            self[k] = v  # <- goes through __setitem__, runs validation
+
+    def update(self, *args, **kwargs):
+        for key, value in dict(*args, **kwargs).items():
+            self[key] = value  # will trigger __setitem__
+
+    def __setitem__(self, key, value):
+        """update set item to do validation on set"""
+        value = self._validate_entry(key, value)
+        super().__setitem__(key, value)
+
+    @staticmethod
+    @abstractmethod
+    def _validate_entry(name, value):
+        pass
+
+
+class VariableDict(ValidatedDict):
+    @staticmethod
+    def _validate_entry(name, val):
+        if isinstance(val, BaseVariable):
+            return val
+        elif isinstance(val, list):
+            if len(val) != 2:
+                raise ValueError(
+                    f"variable {name} is not correctly specified, must have two elements representing upper and lower bounds."
+                )
+            return ContinuousVariable(domain=val)
+        elif isinstance(val, set):
+            return DiscreteVariable(values=val)
+        elif isinstance(val, dict):
+            variable_type = val.pop("type")
+            try:
+                class_ = globals()[variable_type]
+            except KeyError:
+                raise ValueError(f"variable type {variable_type} is not available")
+            return class_(**val)
+        else:
+            raise ValueError(
+                f"variable {name}: input type {type(val)} not supported. "
+                "Must be a BaseVariable, list[2], set, or dict with type field."
+            )
 
 
 class BaseConstraint(BaseField):
@@ -83,6 +132,42 @@ CONSTRAINT_CLASSES = {
 }
 
 
+class ConstraintDict(ValidatedDict):
+    @staticmethod
+    def _validate_entry(name, val):
+        if isinstance(val, BaseConstraint):
+            return val
+        elif isinstance(val, dict):
+            constraint_type = val.pop("type")
+            try:
+                class_ = globals()[constraint_type]
+            except KeyError:
+                raise ValueError(f"constraint type {constraint_type} is not available")
+            return class_(**val)
+        elif isinstance(val, list):
+            if not isinstance(val[0], str):
+                raise ValueError(
+                    f"constraint type {val[0]} must be a string if specified by a list"
+                )
+
+            constraint_type = val[0].upper()
+            if constraint_type not in CONSTRAINT_CLASSES:
+                raise ValueError(
+                    f"Constraint type '{constraint_type}' is not supported for '{name}'."
+                )
+
+            # Dynamically create the constraint instance
+            if constraint_type == "BOUNDS":
+                return CONSTRAINT_CLASSES[constraint_type](range=val[1:])
+            else:
+                if len(val) < 2:
+                    raise ValueError(f"constraint {val} is not correctly specified")
+                return CONSTRAINT_CLASSES[constraint_type](value=val[1])
+
+        else:
+            raise ValueError(f"constraint input type {type(val)} not supported")
+
+
 class ConstraintTypeEnum(str, Enum):
     LESS_THAN = "LESS_THAN"
     GREATER_THAN = "GREATER_THAN"
@@ -95,19 +180,6 @@ class ConstraintTypeEnum(str, Enum):
             for member in cls:
                 if member.name.lower() == name.lower():
                     return member
-
-
-class ObjectiveTypeEnum(str, Enum):
-    MINIMIZE = "MINIMIZE"
-    MAXIMIZE = "MAXIMIZE"
-    EXPLORE = "EXPLORE"
-
-    # Allow any case
-    @classmethod
-    def _missing_(cls, name):
-        for member in cls:
-            if member.name.lower() == name.lower():
-                return member
 
 
 class BaseObjective(BaseField):
@@ -141,7 +213,23 @@ class Observable(BaseField):
     pass
 
 
-class VOCS(BaseModel):
+class ObjectiveDict(ValidatedDict):
+    @staticmethod
+    def _validate_entry(name, val):
+        if isinstance(val, ObjectiveTypeEnum):
+            return val
+        elif isinstance(val, str):
+            try:
+                return ObjectiveTypeEnum(val.upper())
+            except ValueError:
+                raise ValueError(
+                    f"Objective type '{val}' is not supported for '{name}'."
+                )
+        else:
+            raise ValueError(f"objective input type {type(val)} not supported")
+
+
+class VOCS(BaseModel, validate_assignment=True, arbitrary_types_allowed=True):
     """
 
     Variables, Objectives, Constraints, and other Settings (VOCS) data structure
@@ -249,12 +337,15 @@ class VOCS(BaseModel):
 
     """
 
+    variables: VariableDict
+    objectives: ObjectiveDict = Field(
+        default=ObjectiveDict(), description="objective names with type of objective"
     variables: dict[str, BaseVariable]
     objectives: dict[str, BaseObjective] = Field(
         default={}, description="objective names with type of objective"
     )
-    constraints: dict[str, BaseConstraint] = Field(
-        default={},
+    constraints: ConstraintDict = Field(
+        default=ConstraintDict(),
         description="constraint names with a list of constraint type and value",
     )
     constants: dict[str, Constant] = Field(
@@ -270,6 +361,7 @@ class VOCS(BaseModel):
 
     @field_validator("variables", mode="before")
     def validate_variables(cls, v):
+        return VariableDict(v)
         assert isinstance(v, dict)
         for name, val in v.items():
             if isinstance(val, BaseVariable):
@@ -304,47 +396,11 @@ class VOCS(BaseModel):
 
     @field_validator("constraints", mode="before")
     def validate_constraints(cls, v):
-        assert isinstance(v, dict)
-        for name, val in v.items():
-            if isinstance(val, BaseConstraint):
-                v[name] = val
-            elif isinstance(val, dict):
-                constraint_type = val.pop("type")
-                try:
-                    class_ = globals()[constraint_type]
-                except KeyError:
-                    raise ValueError(
-                        f"constraint type {constraint_type} is not available"
-                    )
-                v[name] = class_(**val)
-            elif isinstance(val, list):
-                if not isinstance(val[0], str):
-                    raise ValueError(
-                        f"constraint type {val[0]} must be a string if "
-                        f"specified by a list"
-                    )
-
-                constraint_type = val[0].upper()
-                if constraint_type not in CONSTRAINT_CLASSES:
-                    raise ValueError(
-                        f"Constraint type '{constraint_type}' is not supported for '{name}'."
-                    )
-
-                # Dynamically create the constraint instance
-                if constraint_type == "BOUNDS":
-                    v[name] = CONSTRAINT_CLASSES[constraint_type](range=val[1:])
-                else:
-                    if len(val) < 2:
-                        raise ValueError(f"constraint {val} is not correctly specified")
-                    v[name] = CONSTRAINT_CLASSES[constraint_type](value=val[1])
-
-            else:
-                raise ValueError(f"constraint input type {type(val)} not supported")
-
-        return v
+        return ConstraintDict(v)
 
     @field_validator("objectives", mode="before")
     def validate_objectives(cls, v):
+        return ObjectiveDict(v)
         assert isinstance(v, dict)
         for name, val in v.items():
             if isinstance(val, BaseObjective):

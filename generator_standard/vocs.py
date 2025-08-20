@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Union, Optional, Tuple
+from typing import Any, Union, Optional, Tuple, Type
 
 from pydantic import (
     ConfigDict,
@@ -14,7 +14,7 @@ from pydantic import (
 
 
 class BaseField(BaseModel):
-    dtype: Optional[str] = None
+    dtype: Optional[Union[str, Type, Tuple]] = None
 
 
 class BaseVariable(BaseField):

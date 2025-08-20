@@ -153,15 +153,16 @@ def test_vocs_1a():
             "y": {"a", "b", "c"},
         },
         objectives={"f": "MINIMIZE"},
-        # observables={"temp": "float", "temp_array": (float, (2, 4))},
-        observables={"temp": "float"},
+        observables={"temp": "float", "temp_type": int, "temp_array": (float, (2, 4))},
     )
     assert isinstance(vocs.variables["x"], ContinuousVariable)
     assert isinstance(vocs.variables["y"], DiscreteVariable)
     assert isinstance(vocs.observables["temp"], Observable)
     assert vocs.observables["temp"].dtype == "float"
-    # assert isinstance(vocs.observables["temp_array"], Observable)
-    # assert vocs.observables["temp_array"].dtype == (float, (2, 4))
+    assert isinstance(vocs.observables["temp_type"], Observable)
+    assert vocs.observables["temp_type"].dtype == int
+    assert isinstance(vocs.observables["temp_array"], Observable)
+    assert vocs.observables["temp_array"].dtype == (float, (2, 4))
 
 
 def check_objectives(vocs):

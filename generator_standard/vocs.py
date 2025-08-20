@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Union, Optional, Tuple
+from typing import Any
 
 from pydantic import (
     ConfigDict,
@@ -14,7 +14,7 @@ from pydantic import (
 
 
 class BaseField(BaseModel):
-    dtype: Optional[str] = None
+    dtype: Any = None
 
 
 class BaseVariable(BaseField):
@@ -260,7 +260,7 @@ class VOCS(BaseModel):
     constants: dict[str, Constant] = Field(
         default={}, description="constant names and values passed to evaluate function"
     )
-    observables: Union[set[str], dict[str, Observable]] = Field(
+    observables: set[str] | dict[str, Observable] = Field(
         default=set(),
         description="observation names tracked alongside objectives and constraints",
     )

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any
+from typing import Any, Union, Optional, Tuple
 
 from pydantic import (
     ConfigDict,
@@ -11,6 +11,15 @@ from pydantic import (
     BaseModel,
     field_serializer,
 )
+
+
+class BaseField(BaseModel):
+    dtype: Optional[str] = None
+
+
+class BaseVariable(BaseField):
+    dtype: Optional[str] = None
+
 
 class Variable(BaseModel):
     dtype: Any = float
@@ -56,7 +65,7 @@ class DiscreteVariable(Variable):
         return self
 
 
-class BaseConstraint(BaseModel):
+class BaseConstraint(BaseField):
     pass
 
 
@@ -123,11 +132,44 @@ class ObjectiveTypeEnum(str, Enum):
             if member.name.lower() == name.lower():
                 return member
 
+
+class BaseObjective(BaseField):
+    pass
+
+
+class MinimizeObjective(BaseObjective):
+    pass
+
+
+class MaximizeObjective(BaseObjective):
+    pass
+
+
+class ExploreObjective(BaseObjective):
+    pass
+
+
+OBJECTIVE_CLASSES = {
+    "MINIMIZE": MinimizeObjective,
+    "MAXIMIZE": MaximizeObjective,
+    "EXPLORE": ExploreObjective,
+}
+
+
+class Constant(BaseField):
+    value: Any
+
+
+class Observable(BaseField):
+    pass
+
+
 VariableType = Variable | ContinuousVariable | DiscreteVariable
 
 
 class VOCS(BaseModel):
     """
+
     Variables, Objectives, Constraints, and other Settings (VOCS) data structure
     to describe optimization problems.
 
@@ -142,6 +184,7 @@ class VOCS(BaseModel):
 
                 - A two-element list, representing bounds.
                 - A set of discrete values, with curly-braces.
+                - A single integer.
 
             .. code-block:: python
                 :linenos:
@@ -151,6 +194,8 @@ class VOCS(BaseModel):
                 vocs = VOCS(variables={"x": [0.0, 1.0]})
                 ...
                 vocs = VOCS(variables={"x": {0, 1, 2, "/usr", "/home", "/bin"}})
+                ...
+                vocs = VOCS(variables={"x": 32})
 
 
         .. tab-item:: objectives
@@ -217,7 +262,7 @@ class VOCS(BaseModel):
             Names of other objective function outputs that will be passed
             to the optimizer (alongside the `objectives` and `constraints`).
 
-            A **set** of strings.
+            A **set** of strings or a **dictionary** with **keys** being names and **values** being type:
 
             .. code-block:: python
                 :linenos:
@@ -225,21 +270,23 @@ class VOCS(BaseModel):
                 from generator_standard.vocs import VOCS
 
                 vocs = VOCS(observables={"temp", "temp2"})
+                ...
+                vocs = VOCS(observables={"temp": "float", "temp2": "int"})
 
     """
 
-    variables: list[VariableType]
-    objectives: dict[str, ObjectiveTypeEnum] = Field(
+    variables: dict[str, BaseVariable]
+    objectives: dict[str, BaseObjective] = Field(
         default={}, description="objective names with type of objective"
     )
     constraints: dict[str, BaseConstraint] = Field(
         default={},
         description="constraint names with a list of constraint type and value",
     )
-    constants: dict[str, Any] = Field(
+    constants: dict[str, Constant] = Field(
         default={}, description="constant names and values passed to evaluate function"
     )
-    observables: set[str] = Field(
+    observables: Union[set[str], dict[str, Observable]] = Field(
         default=set(),
         description="observation names tracked alongside objectives and constraints",
     )
@@ -256,7 +303,8 @@ class VOCS(BaseModel):
             elif isinstance(val, list):
                 if len(val) != 2:
                     raise ValueError(
-                        f"variable {val} is not correctly specified, must have two elements representing upper and lower bounds."
+                        f"variable {val} is not correctly specified, "
+                        f"must have two elements representing upper and lower bounds."
                     )
                 v[name] = ContinuousVariable(domain=val)
             elif isinstance(val, set):
@@ -272,7 +320,11 @@ class VOCS(BaseModel):
                 v[name] = class_(**val)
 
             else:
-                raise ValueError(f"variable input type {type(val)} not supported. Must be a list of two elements representing upper and lower bounds *or* a set of possible values to sample.")
+                raise ValueError(
+                    f"variable input type {type(val)} not supported. "
+                    f"Must be a list of two elements representing upper and lower bounds "
+                    f"*or* a set of possible values to sample."
+                )
 
         return v
 
@@ -321,27 +373,89 @@ class VOCS(BaseModel):
     def validate_objectives(cls, v):
         assert isinstance(v, dict)
         for name, val in v.items():
-            if isinstance(val, ObjectiveTypeEnum):
+            if isinstance(val, BaseObjective):
                 v[name] = val
+            elif isinstance(val, ObjectiveTypeEnum):
+                v[name] = OBJECTIVE_CLASSES[val.value]()
             elif isinstance(val, str):
-                try:
-                    v[name] = ObjectiveTypeEnum(val.upper())
-                except ValueError:
+                key = val.upper()
+                if key in OBJECTIVE_CLASSES:
+                    v[name] = OBJECTIVE_CLASSES[key]()
+                else:
                     raise ValueError(
                         f"Objective type '{val}' is not supported for '{name}'."
                     )
+            elif isinstance(val, dict):
+                if "type" in val:
+                    obj_type = val.pop("type")
+                    try:
+                        class_ = globals()[obj_type]
+                        if not issubclass(class_, BaseObjective):
+                            raise KeyError
+                        v[name] = class_(**val)
+                    except KeyError:
+                        raise ValueError(
+                            f"Objective type '{obj_type}' is not available"
+                        )
+                else:
+                    raise ValueError(f"objective {val} is not correctly specified")
             else:
                 raise ValueError(f"objective input type {type(val)} not supported")
-
         return v
 
-    @field_serializer("variables", "constraints")
+    @field_validator("constants", mode="before")
+    def validate_constants(cls, v):
+        assert isinstance(v, dict)
+        for name, val in v.items():
+            if isinstance(val, Constant):
+                v[name] = val
+            elif isinstance(val, dict):
+                constant_type = val.pop("type")
+                try:
+                    class_ = globals()[constant_type]
+                except KeyError:
+                    raise ValueError(
+                        f"constant type {constant_type} is not available"
+                    )
+                v[name] = class_(**val)
+            else:
+                v[name] = Constant(value=val)
+        return v
+
+    @field_validator("observables", mode="before")
+    def validate_observables(cls, v):
+        if isinstance(v, (set, list)):
+            return set(v) if isinstance(v, list) else v
+        elif isinstance(v, dict):
+            output = {}
+            for name, val in v.items():
+                if isinstance(val, Observable):
+                    output[name] = val
+                elif isinstance(val, dict):
+                    val.pop("type", None)
+                    output[name] = Observable(**val)
+                else:
+                    output[name] = Observable(dtype=val)
+            return output
+        else:
+            raise ValueError(f"observables input type {type(v)} not supported")
+
+    @field_serializer("variables", "constraints", "objectives", "constants")
     def serialize_objects(self, v):
         output = {}
         for name, val in v.items():
             output[name] = val.model_dump() | {"type": type(val).__name__}
-
         return output
+
+    @field_serializer("observables")
+    def serialize_observables(self, v):
+        if isinstance(v, set):
+            return list(v)
+        else:
+            output = {}
+            for name, val in v.items():
+                output[name] = val.model_dump() | {"type": type(val).__name__}
+            return output
 
     @property
     def bounds(self) -> list:

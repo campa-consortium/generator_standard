@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, field_serializer
 
 from pydantic import (
     conlist,
@@ -138,9 +138,15 @@ class ConstraintDict(ValidatedDict):
         if isinstance(val, BaseConstraint):
             return val
         elif isinstance(val, dict):
+            if "type" not in val:
+                raise ValueError(f"constraint {name} is not correctly specified")
             constraint_type = val.pop("type")
             try:
                 class_ = globals()[constraint_type]
+                if not issubclass(class_, BaseConstraint):
+                    raise ValueError(
+                        f"constraint type {constraint_type} is not a valid constraint"
+                    )
             except KeyError:
                 raise ValueError(f"constraint type {constraint_type} is not available")
             return class_(**val)
@@ -166,20 +172,6 @@ class ConstraintDict(ValidatedDict):
 
         else:
             raise ValueError(f"constraint input type {type(val)} not supported")
-
-
-class ConstraintTypeEnum(str, Enum):
-    LESS_THAN = "LESS_THAN"
-    GREATER_THAN = "GREATER_THAN"
-    BOUNDS = "BOUNDS"
-
-    # Allow any case
-    @classmethod
-    def _missing_(cls, name):
-        if isinstance(name, str):
-            for member in cls:
-                if member.name.lower() == name.lower():
-                    return member
 
 
 class BaseObjective(BaseField):
@@ -216,12 +208,25 @@ class Observable(BaseField):
 class ObjectiveDict(ValidatedDict):
     @staticmethod
     def _validate_entry(name, val):
-        if isinstance(val, ObjectiveTypeEnum):
+        if isinstance(val, BaseObjective):
             return val
+        elif isinstance(val, dict):
+            if "type" not in val:
+                raise ValueError(f"objective {name} is not correctly specified")
+            objective_type = val.pop("type")
+            try:
+                class_ = globals()[objective_type]
+                if not issubclass(class_, BaseObjective):
+                    raise ValueError(
+                        f"objective type {objective_type} is not a valid objective"
+                    )
+            except KeyError:
+                raise ValueError(f"objective type {objective_type} is not available")
+            return class_(**val)
         elif isinstance(val, str):
             try:
-                return ObjectiveTypeEnum(val.upper())
-            except ValueError:
+                return OBJECTIVE_CLASSES[val.upper()]()
+            except KeyError:
                 raise ValueError(
                     f"Objective type '{val}' is not supported for '{name}'."
                 )
@@ -340,9 +345,6 @@ class VOCS(BaseModel, validate_assignment=True, arbitrary_types_allowed=True):
     variables: VariableDict
     objectives: ObjectiveDict = Field(
         default=ObjectiveDict(), description="objective names with type of objective"
-    variables: dict[str, BaseVariable]
-    objectives: dict[str, BaseObjective] = Field(
-        default={}, description="objective names with type of objective"
     )
     constraints: ConstraintDict = Field(
         default=ConstraintDict(),
@@ -351,7 +353,7 @@ class VOCS(BaseModel, validate_assignment=True, arbitrary_types_allowed=True):
     constants: dict[str, Constant] = Field(
         default={}, description="constant names and values passed to evaluate function"
     )
-    observables: Union[set[str], dict[str, Observable]] = Field(
+    observables: set[str] | dict[str, Observable] = Field(
         default=set(),
         description="observation names tracked alongside objectives and constraints",
     )
@@ -362,37 +364,6 @@ class VOCS(BaseModel, validate_assignment=True, arbitrary_types_allowed=True):
     @field_validator("variables", mode="before")
     def validate_variables(cls, v):
         return VariableDict(v)
-        assert isinstance(v, dict)
-        for name, val in v.items():
-            if isinstance(val, BaseVariable):
-                v[name] = val
-            elif isinstance(val, list):
-                if len(val) != 2:
-                    raise ValueError(
-                        f"variable {val} is not correctly specified, "
-                        f"must have two elements representing upper and lower bounds."
-                    )
-                v[name] = ContinuousVariable(domain=val)
-            elif isinstance(val, set):
-                v[name] = DiscreteVariable(values=val)
-            elif isinstance(val, dict):
-                variable_type = val.pop("type")
-                try:
-                    class_ = globals()[variable_type]
-                except KeyError:
-                    raise ValueError(
-                        f"variable type {variable_type} is not available"
-                    )
-                v[name] = class_(**val)
-
-            else:
-                raise ValueError(
-                    f"variable input type {type(val)} not supported. "
-                    f"Must be a list of two elements representing upper and lower bounds "
-                    f"*or* a set of possible values to sample."
-                )
-
-        return v
 
     @field_validator("constraints", mode="before")
     def validate_constraints(cls, v):
@@ -401,37 +372,6 @@ class VOCS(BaseModel, validate_assignment=True, arbitrary_types_allowed=True):
     @field_validator("objectives", mode="before")
     def validate_objectives(cls, v):
         return ObjectiveDict(v)
-        assert isinstance(v, dict)
-        for name, val in v.items():
-            if isinstance(val, BaseObjective):
-                v[name] = val
-            elif isinstance(val, ObjectiveTypeEnum):
-                v[name] = OBJECTIVE_CLASSES[val.value]()
-            elif isinstance(val, str):
-                key = val.upper()
-                if key in OBJECTIVE_CLASSES:
-                    v[name] = OBJECTIVE_CLASSES[key]()
-                else:
-                    raise ValueError(
-                        f"Objective type '{val}' is not supported for '{name}'."
-                    )
-            elif isinstance(val, dict):
-                if "type" in val:
-                    obj_type = val.pop("type")
-                    try:
-                        class_ = globals()[obj_type]
-                        if not issubclass(class_, BaseObjective):
-                            raise KeyError
-                        v[name] = class_(**val)
-                    except KeyError:
-                        raise ValueError(
-                            f"Objective type '{obj_type}' is not available"
-                        )
-                else:
-                    raise ValueError(f"objective {val} is not correctly specified")
-            else:
-                raise ValueError(f"objective input type {type(val)} not supported")
-        return v
 
     @field_validator("constants", mode="before")
     def validate_constants(cls, v):
@@ -444,9 +384,7 @@ class VOCS(BaseModel, validate_assignment=True, arbitrary_types_allowed=True):
                 try:
                     class_ = globals()[constant_type]
                 except KeyError:
-                    raise ValueError(
-                        f"constant type {constant_type} is not available"
-                    )
+                    raise ValueError(f"constant type {constant_type} is not available")
                 v[name] = class_(**val)
             else:
                 v[name] = Constant(value=val)

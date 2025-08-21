@@ -137,8 +137,7 @@ Each generator will be a Python class that defines the following methods:
   
 - `finalize()`:
 
-  **Optional**. Performs any work required to close down the generator. Some generators may need to close down background processes, files, databases,
-  or dump data to disk. This is similar to calling `.close()` on an open file.
+  **Optional**. Performs any work required to close down the generator. Some generators may need to close down background processes, files, databases, or asynchronous components. After finalize is called, the generator’s data is guaranteed to be up to date, including results from any outstanding processes, threads, or asynchronous tasks.
 
   Example:
 

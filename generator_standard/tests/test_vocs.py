@@ -352,7 +352,7 @@ def test_constant_object_input():
 
 
 def test_constant_dict_with_invalid_type():
-    with pytest.raises(ValueError, match="not available"):
+    with pytest.raises(ValueError, match="InvalidConstant is not a valid constant"):
         VOCS(
             variables={"x": [0, 1]},
             constants={"c": {"type": "InvalidConstant", "value": 5}},
@@ -364,6 +364,14 @@ def test_objective_dict_with_non_objective_class():
         VOCS(
             variables={"x": [0, 1]},
             objectives={"f": {"type": "Constant"}},  # Valid class but not BaseObjective
+        )
+
+
+def test_observable_dict_with_invalid_type():
+    with pytest.raises(ValueError, match="InvalidObservable is not a valid observable"):
+        VOCS(
+            variables={"x": [0, 1]},
+            observables={"temp": {"type": "InvalidObservable", "dtype": "float"}},
         )
 
 
@@ -484,3 +492,22 @@ def test_n_outputs_property():
         observables=["temp"],
     )
     assert vocs.n_outputs == 5
+
+
+def test_roundtrip_serialization():
+    # test serialization and deserialization with all features
+    vocs = VOCS(
+        variables={"x": [0, 1]},
+        objectives={"f": "MINIMIZE", "g": "MAXIMIZE", "h": "EXPLORE"},
+        constraints={
+            "c": ["GREATER_THAN", 0.0],
+            "c1": ["LESS_THAN", 2.0],
+            "c2": ["BOUNDS", -1.0, 1.0],
+        },
+        constants={"alpha": 1.0, "beta": 2.0},
+        observables={"temp": "float", "temp2": "int"},
+    )
+    model = vocs.model_dump()
+    vocs_deserialized = VOCS.model_validate(model)
+    assert vocs_deserialized == vocs
+    assert isinstance(vocs.constants["alpha"], Constant)

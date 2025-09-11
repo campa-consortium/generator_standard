@@ -42,6 +42,28 @@ class DiscreteVariable(BaseVariable):
     )
 
 
+class ValidatedList(list, ABC):
+    def __init__(self, *args):
+        raw = list(*args)  # collect initial data
+        super().__init__()  # start with empty list
+        for v in raw:
+            self.append(v)  # <- goes through add, runs validation
+
+    def update(self, *args):
+        for value in list(*args):
+            self.append(value)  # will trigger append
+
+    def append(self, value):
+        """update append to do validation on append"""
+        value = self._validate_entry(value)
+        super().append(value)
+
+    @staticmethod
+    @abstractmethod
+    def _validate_entry(value):
+        pass
+
+
 class ValidatedDict(dict, ABC):
     def __init__(self, *args, **kwargs):
         raw = dict(*args, **kwargs)  # collect initial data
@@ -54,7 +76,7 @@ class ValidatedDict(dict, ABC):
             self[key] = value  # will trigger __setitem__
 
     def __setitem__(self, key, value):
-        """update set item to do validation on set"""
+        """update dict item to do validation on set"""
         value = self._validate_entry(key, value)
         super().__setitem__(key, value)
 
@@ -197,14 +219,6 @@ OBJECTIVE_CLASSES = {
 }
 
 
-class Constant(BaseField):
-    value: Any
-
-
-class Observable(BaseField):
-    pass
-
-
 class ObjectiveDict(ValidatedDict):
     @staticmethod
     def _validate_entry(name, val):
@@ -232,6 +246,58 @@ class ObjectiveDict(ValidatedDict):
                 )
         else:
             raise ValueError(f"objective input type {type(val)} not supported")
+
+
+class Constant(BaseField):
+    value: Any
+
+
+class ConstantDict(ValidatedDict):
+    @staticmethod
+    def _validate_entry(name, val):
+        if isinstance(val, Constant):
+            return val
+        elif isinstance(val, dict):
+            if "type" not in val:
+                raise ValueError(f"constant {name} is not correctly specified")
+            constant_type = val.pop("type")
+
+            # we only have one constant type for now
+            if constant_type != "Constant":
+                raise ValueError(
+                    f"constant type {constant_type} is not a valid constant"
+                )
+
+            return Constant(**val)
+        else:
+            return Constant(value=val)
+
+
+class Observable(BaseField):
+    pass
+
+
+class ObservableDict(ValidatedDict):
+    @staticmethod
+    def _validate_entry(name, val):
+        if isinstance(val, Observable):
+            return val
+        elif isinstance(val, dict):
+            if "type" not in val:
+                raise ValueError(f"observable {name} is not correctly specified")
+            observable_type = val.pop("type")
+
+            # we only have one observable type for now
+            if observable_type != "Observable":
+                raise ValueError(
+                    f"observable type {observable_type} is not a valid observable"
+                )
+
+            return Observable(**val)
+        elif isinstance(val, str):
+            return Observable(dtype=val)
+        else:
+            raise ValueError(f"observable input type {type(val)} not supported")
 
 
 class VOCS(BaseModel, validate_assignment=True, arbitrary_types_allowed=True):
@@ -350,12 +416,13 @@ class VOCS(BaseModel, validate_assignment=True, arbitrary_types_allowed=True):
         default=ConstraintDict(),
         description="constraint names with a list of constraint type and value",
     )
-    constants: dict[str, Constant] = Field(
-        default={}, description="constant names and values passed to evaluate function"
+    constants: ConstantDict = Field(
+        default=ConstantDict(),
+        description="constant names and values passed to evaluate function",
     )
-    observables: set[str] | dict[str, Observable] = Field(
-        default=set(),
-        description="observation names tracked alongside objectives and constraints",
+    observables: ObservableDict = Field(
+        default=ObservableDict(),
+        description="observables tracked alongside objectives and constraints",
     )
     model_config = ConfigDict(
         validate_assignment=True, use_enum_values=True, extra="forbid"
@@ -375,36 +442,15 @@ class VOCS(BaseModel, validate_assignment=True, arbitrary_types_allowed=True):
 
     @field_validator("constants", mode="before")
     def validate_constants(cls, v):
-        assert isinstance(v, dict)
-        for name, val in v.items():
-            if isinstance(val, Constant):
-                v[name] = val
-            elif isinstance(val, dict):
-                constant_type = val.pop("type")
-                try:
-                    class_ = globals()[constant_type]
-                except KeyError:
-                    raise ValueError(f"constant type {constant_type} is not available")
-                v[name] = class_(**val)
-            else:
-                v[name] = Constant(value=val)
-        return v
+        return ConstantDict(v)
 
     @field_validator("observables", mode="before")
     def validate_observables(cls, v):
-        if isinstance(v, (set, list)):
-            return set(v) if isinstance(v, list) else v
+        # allow a set/list of names for convenience
+        if isinstance(v, set) or isinstance(v, list):
+            return ObservableDict({name: Observable() for name in v})
         elif isinstance(v, dict):
-            output = {}
-            for name, val in v.items():
-                if isinstance(val, Observable):
-                    output[name] = val
-                elif isinstance(val, dict):
-                    val.pop("type", None)
-                    output[name] = Observable(**val)
-                else:
-                    output[name] = Observable(dtype=val)
-            return output
+            return ObservableDict(v)
         else:
             raise ValueError(f"observables input type {type(v)} not supported")
 
@@ -417,13 +463,10 @@ class VOCS(BaseModel, validate_assignment=True, arbitrary_types_allowed=True):
 
     @field_serializer("observables")
     def serialize_observables(self, v):
-        if isinstance(v, set):
-            return list(v)
-        else:
-            output = {}
-            for name, val in v.items():
-                output[name] = val.model_dump() | {"type": type(val).__name__}
-            return output
+        output = {}
+        for name, val in v.items():
+            output[name] = val.model_dump() | {"type": type(val).__name__}
+        return output
 
     @property
     def bounds(self) -> list:
@@ -439,13 +482,11 @@ class VOCS(BaseModel, validate_assignment=True, arbitrary_types_allowed=True):
 
     @property
     def constraint_names(self) -> list[str]:
-        if not self.constraints:
-            return []
         return list(self.constraints.keys())
 
     @property
     def observable_names(self) -> list[str]:
-        return self.observables
+        return list(self.observables.keys())
 
     @property
     def output_names(self) -> list[str]:

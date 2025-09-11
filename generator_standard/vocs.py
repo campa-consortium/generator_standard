@@ -61,7 +61,7 @@ class ValidatedDict(dict, ABC):
     @staticmethod
     @abstractmethod
     def _validate_entry(name, value):
-        pass
+        ...
 
 
 class VariableDict(ValidatedDict):

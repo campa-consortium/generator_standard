@@ -42,28 +42,6 @@ class DiscreteVariable(BaseVariable):
     )
 
 
-class ValidatedList(list, ABC):
-    def __init__(self, *args):
-        raw = list(*args)  # collect initial data
-        super().__init__()  # start with empty list
-        for v in raw:
-            self.append(v)  # <- goes through add, runs validation
-
-    def update(self, *args):
-        for value in list(*args):
-            self.append(value)  # will trigger append
-
-    def append(self, value):
-        """update append to do validation on append"""
-        value = self._validate_entry(value)
-        super().append(value)
-
-    @staticmethod
-    @abstractmethod
-    def _validate_entry(value):
-        pass
-
-
 class ValidatedDict(dict, ABC):
     def __init__(self, *args, **kwargs):
         raw = dict(*args, **kwargs)  # collect initial data
@@ -100,6 +78,8 @@ class VariableDict(ValidatedDict):
         elif isinstance(val, set):
             return DiscreteVariable(values=val)
         elif isinstance(val, dict):
+            if "type" not in val:
+                raise ValueError(f"variable {name} must provide type field")
             variable_type = val.pop("type")
             try:
                 class_ = globals()[variable_type]
@@ -161,14 +141,10 @@ class ConstraintDict(ValidatedDict):
             return val
         elif isinstance(val, dict):
             if "type" not in val:
-                raise ValueError(f"constraint {name} is not correctly specified")
+                raise ValueError(f"constraint {name} must provide type field")
             constraint_type = val.pop("type")
             try:
                 class_ = globals()[constraint_type]
-                if not issubclass(class_, BaseConstraint):
-                    raise ValueError(
-                        f"constraint type {constraint_type} is not a valid constraint"
-                    )
             except KeyError:
                 raise ValueError(f"constraint type {constraint_type} is not available")
             return class_(**val)

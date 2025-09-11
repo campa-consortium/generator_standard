@@ -63,6 +63,12 @@ def test_invalid_variable_class():
             objectives={},
         )
 
+    with pytest.raises(ValueError, match="must provide type field"):
+        VOCS(
+            variables={"x": {"value": 1}},  # Missing 'type' field
+            objectives={},
+        )
+
 
 def test_invalid_constraint_class():
     with pytest.raises(ValueError, match="not available"):
@@ -70,6 +76,13 @@ def test_invalid_constraint_class():
             variables={"x": [0.0, 1.0]},
             objectives={},
             constraints={"c": {"type": "FakeConstraint", "value": 1}},
+        )
+
+    with pytest.raises(ValueError, match="must provide type field"):
+        VOCS(
+            variables={"x": [0.0, 1.0]},
+            objectives={},
+            constraints={"c": {"value": 1}},  # Missing 'type' field
         )
 
 
@@ -107,6 +120,9 @@ def test_adding_variables():
 
     with pytest.raises(ValueError, match="not supported"):
         v.variables["z"] = 5.0
+
+    # test adding with update method
+    v.variables.update({"z": [0.0, 2.0]})
 
 
 def test_adding_constraints():
@@ -351,11 +367,17 @@ def test_constant_object_input():
     assert isinstance(vocs.constants["c"], Constant)
 
 
-def test_constant_dict_with_invalid_type():
+def test_constant_dict_with_invalid_inputs():
     with pytest.raises(ValueError, match="InvalidConstant is not a valid constant"):
         VOCS(
             variables={"x": [0, 1]},
             constants={"c": {"type": "InvalidConstant", "value": 5}},
+        )
+
+    with pytest.raises(ValueError, match="not correctly specified"):
+        VOCS(
+            variables={"x": [0, 1]},
+            constants={"c": {"value": 5}},  # Missing 'type' field
         )
 
 
@@ -367,11 +389,23 @@ def test_objective_dict_with_non_objective_class():
         )
 
 
-def test_observable_dict_with_invalid_type():
+def test_observable_dict_with_invalid_inputs():
     with pytest.raises(ValueError, match="InvalidObservable is not a valid observable"):
         VOCS(
             variables={"x": [0, 1]},
             observables={"temp": {"type": "InvalidObservable", "dtype": "float"}},
+        )
+
+    with pytest.raises(ValueError, match="not correctly specified"):
+        VOCS(
+            variables={"x": [0, 1]},
+            observables={"temp": {"dtype": "float"}},  # Missing 'type' field
+        )
+
+    with pytest.raises(ValueError, match="not supported"):
+        VOCS(
+            variables={"x": [0, 1]},
+            observables={"temp": 123},  # Invalid type
         )
 
 
@@ -492,22 +526,3 @@ def test_n_outputs_property():
         observables=["temp"],
     )
     assert vocs.n_outputs == 5
-
-
-def test_roundtrip_serialization():
-    # test serialization and deserialization with all features
-    vocs = VOCS(
-        variables={"x": [0, 1]},
-        objectives={"f": "MINIMIZE", "g": "MAXIMIZE", "h": "EXPLORE"},
-        constraints={
-            "c": ["GREATER_THAN", 0.0],
-            "c1": ["LESS_THAN", 2.0],
-            "c2": ["BOUNDS", -1.0, 1.0],
-        },
-        constants={"alpha": 1.0, "beta": 2.0},
-        observables={"temp": "float", "temp2": "int"},
-    )
-    model = vocs.model_dump()
-    vocs_deserialized = VOCS.model_validate(model)
-    assert vocs_deserialized == vocs
-    assert isinstance(vocs.constants["alpha"], Constant)

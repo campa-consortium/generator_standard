@@ -7,8 +7,6 @@ from generator_standard.vocs import (
     BoundsConstraint,
     GreaterThanConstraint,
     LessThanConstraint,
-    ConstraintTypeEnum,
-    ObjectiveTypeEnum,
     MinimizeObjective,
     MaximizeObjective,
     ExploreObjective,
@@ -54,7 +52,7 @@ def test_discrete_variable_removes_duplicates():
 
 
 def test_invalid_variable_dict_type():
-    with pytest.raises(ValueError, match="not supported"):
+    with pytest.raises(ValidationError, match="not supported"):
         VOCS(variables={"x": 5.0}, objectives={})
 
 
@@ -65,6 +63,12 @@ def test_invalid_variable_class():
             objectives={},
         )
 
+    with pytest.raises(ValueError, match="must provide type field"):
+        VOCS(
+            variables={"x": {"value": 1}},  # Missing 'type' field
+            objectives={},
+        )
+
 
 def test_invalid_constraint_class():
     with pytest.raises(ValueError, match="not available"):
@@ -72,6 +76,13 @@ def test_invalid_constraint_class():
             variables={"x": [0.0, 1.0]},
             objectives={},
             constraints={"c": {"type": "FakeConstraint", "value": 1}},
+        )
+
+    with pytest.raises(ValueError, match="must provide type field"):
+        VOCS(
+            variables={"x": [0.0, 1.0]},
+            objectives={},
+            constraints={"c": {"value": 1}},  # Missing 'type' field
         )
 
 
@@ -99,6 +110,29 @@ def test_invalid_non_bounds_constraint_short_list():
         VOCS(
             variables={"x": [0.0, 1.0]}, objectives={}, constraints={"c": ["LESS_THAN"]}
         )
+
+
+def test_adding_variables():
+    v = VOCS(variables={"x": [0.0, 1.0]}, objectives={})
+    v.variables["y"] = [0.0, 2.0]
+    assert isinstance(v.variables["y"], ContinuousVariable)
+    assert v.variables["y"].domain == [0.0, 2.0]
+
+    with pytest.raises(ValueError, match="not supported"):
+        v.variables["z"] = 5.0
+
+    # test adding with update method
+    v.variables.update({"z": [0.0, 2.0]})
+
+
+def test_adding_constraints():
+    v = VOCS(variables={"x": [0.0, 1.0]}, objectives={})
+    v.constraints["c"] = ["LESS_THAN", 0.0]
+    assert isinstance(v.constraints["c"], LessThanConstraint)
+    assert v.constraints["c"].value == 0.0
+
+    with pytest.raises(ValueError, match="not supported"):
+        v.constraints["c2"] = 5.0
 
 
 def test_unsupported_constraint_type():
@@ -189,9 +223,9 @@ def test_vocs_2a():
             "x": ContinuousVariable(domain=[0.5, 1.0]),
         },
         objectives={
-            "f": ObjectiveTypeEnum.MINIMIZE,
-            "f2": ObjectiveTypeEnum.MAXIMIZE,
-            "f3": ObjectiveTypeEnum.EXPLORE,
+            "f": MinimizeObjective(),
+            "f2": MaximizeObjective(),
+            "f3": ExploreObjective(),
         },
     )
     check_objectives(vocs)
@@ -203,9 +237,9 @@ def test_vocs_2b():
             "x": ContinuousVariable(domain=[0.5, 1.0]),
         },
         objectives={
-            "f": ObjectiveTypeEnum("minimize"),
-            "f2": ObjectiveTypeEnum("maximize"),
-            "f3": ObjectiveTypeEnum("explore"),
+            "f": MinimizeObjective(),
+            "f2": MaximizeObjective(),
+            "f3": ExploreObjective(),
         },
     )
     check_objectives(vocs)
@@ -251,9 +285,9 @@ def test_vocs_3b():
         variables={"x": [0.0, 1.0]},
         objectives={"f": "MINIMIZE"},
         constraints={
-            "c": [ConstraintTypeEnum("greater_than"), 0.0],
-            "c1": [ConstraintTypeEnum("less_than"), 2.0],
-            "c2": [ConstraintTypeEnum("bounds"), -1.0, 1.0],
+            "c": GreaterThanConstraint(value=0.0),
+            "c1": LessThanConstraint(value=2.0),
+            "c2": BoundsConstraint(range=[-1.0, 1.0]),
         },
     )
     check_constraints(vocs)
@@ -272,7 +306,7 @@ def test_vocs_serialization_deserialization():
             "c2": ["BOUNDS", -1.0, 1.0],
         },
         # observables=["temp"],
-        observables={"temp": "float", "temp2": "int"},        
+        observables={"temp": "float", "temp2": "int"},
     )
 
     # Serialize to JSON
@@ -286,10 +320,7 @@ def test_vocs_serialization_deserialization():
 
 
 def test_vocs_set_observables_serialization():
-    vocs = VOCS(
-        variables={"x": [0, 1]},
-        observables={"temp", "temp2"}
-    )
+    vocs = VOCS(variables={"x": [0, 1]}, observables={"temp", "temp2"})
     model = vocs.model_dump()
     vocs_deserialized = VOCS.model_validate(model)
     assert vocs_deserialized == vocs
@@ -297,8 +328,7 @@ def test_vocs_set_observables_serialization():
 
 def test_vocs_observable_object_input():
     vocs = VOCS(
-        variables={"x": [0, 1]},
-        observables={"temp": Observable(dtype="float")}
+        variables={"x": [0, 1]}, observables={"temp": Observable(dtype="float")}
     )
     assert isinstance(vocs.observables["temp"], Observable)
     assert vocs.observables["temp"].dtype == "float"
@@ -308,74 +338,84 @@ def test_invalid_observables_input():
     with pytest.raises(ValueError, match="observables input type"):
         VOCS(
             variables={"x": [0, 1]},
-            observables=123  # invalid type
+            observables=123,  # invalid type
         )
 
 
 def test_objective_object_input():
-    vocs = VOCS(
-        variables={"x": [0, 1]},
-        objectives={"f": MinimizeObjective()}
-    )
+    vocs = VOCS(variables={"x": [0, 1]}, objectives={"f": MinimizeObjective()})
     assert isinstance(vocs.objectives["f"], MinimizeObjective)
 
 
 def test_objective_dict_with_invalid_type():
     with pytest.raises(ValueError, match="not available"):
-        VOCS(
-            variables={"x": [0, 1]},
-            objectives={"f": {"type": "InvalidObjective"}}
-        )
+        VOCS(variables={"x": [0, 1]}, objectives={"f": {"type": "InvalidObjective"}})
 
 
 def test_objective_dict_missing_type():
     with pytest.raises(ValueError, match="not correctly specified"):
-        VOCS(
-            variables={"x": [0, 1]},
-            objectives={"f": {"some_field": "value"}}
-        )
+        VOCS(variables={"x": [0, 1]}, objectives={"f": {"some_field": "value"}})
 
 
 def test_objective_invalid_input_type():
     with pytest.raises(ValueError, match="not supported"):
-        VOCS(
-            variables={"x": [0, 1]},
-            objectives={"f": 123}
-        )
+        VOCS(variables={"x": [0, 1]}, objectives={"f": 123})
 
 
 def test_constant_object_input():
-    vocs = VOCS(
-        variables={"x": [0, 1]},
-        constants={"c": Constant(value=5)}
-    )
+    vocs = VOCS(variables={"x": [0, 1]}, constants={"c": Constant(value=5)})
     assert isinstance(vocs.constants["c"], Constant)
 
 
-def test_constant_dict_with_invalid_type():
-    with pytest.raises(ValueError, match="not available"):
+def test_constant_dict_with_invalid_inputs():
+    with pytest.raises(ValueError, match="InvalidConstant is not a valid constant"):
         VOCS(
             variables={"x": [0, 1]},
-            constants={"c": {"type": "InvalidConstant", "value": 5}}
+            constants={"c": {"type": "InvalidConstant", "value": 5}},
+        )
+
+    with pytest.raises(ValueError, match="not correctly specified"):
+        VOCS(
+            variables={"x": [0, 1]},
+            constants={"c": {"value": 5}},  # Missing 'type' field
         )
 
 
 def test_objective_dict_with_non_objective_class():
-    with pytest.raises(ValueError, match="not available"):
+    with pytest.raises(ValueError, match="not a valid objective"):
         VOCS(
             variables={"x": [0, 1]},
-            objectives={"f": {"type": "Constant"}}  # Valid class but not BaseObjective
+            objectives={"f": {"type": "Constant"}},  # Valid class but not BaseObjective
+        )
+
+
+def test_observable_dict_with_invalid_inputs():
+    with pytest.raises(ValueError, match="InvalidObservable is not a valid observable"):
+        VOCS(
+            variables={"x": [0, 1]},
+            observables={"temp": {"type": "InvalidObservable", "dtype": "float"}},
+        )
+
+    with pytest.raises(ValueError, match="not correctly specified"):
+        VOCS(
+            variables={"x": [0, 1]},
+            observables={"temp": {"dtype": "float"}},  # Missing 'type' field
+        )
+
+    with pytest.raises(ValueError, match="not supported"):
+        VOCS(
+            variables={"x": [0, 1]},
+            observables={"temp": 123},  # Invalid type
         )
 
 
 def test_constant_dict_construction():
     vocs = VOCS(
-        variables={"x": [0, 1]},
-        constants={"c": {"type": "Constant", "value": 42}}
+        variables={"x": [0, 1]}, constants={"c": {"type": "Constant", "value": 42}}
     )
     assert isinstance(vocs.constants["c"], Constant)
     assert vocs.constants["c"].value == 42
-    
+
 
 def test_bounds_property():
     vocs = VOCS(variables={"x": [0, 1], "y": [2, 4]})

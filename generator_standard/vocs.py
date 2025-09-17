@@ -1,15 +1,15 @@
+from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Union, Optional, Tuple
+from typing import Any, Optional
+from pydantic import BaseModel, ConfigDict, field_serializer
 
 from pydantic import (
-    ConfigDict,
     conlist,
     conset,
     Field,
     field_validator,
     model_validator,
     BaseModel,
-    field_serializer,
 )
 
 
@@ -40,6 +40,57 @@ class DiscreteVariable(BaseVariable):
     values: conset(Any, min_length=1) = Field(
         description="List of allowed discrete values"
     )
+
+
+class ValidatedDict(dict, ABC):
+    def __init__(self, *args, **kwargs):
+        raw = dict(*args, **kwargs)  # collect initial data
+        super().__init__()  # start with empty dict
+        for k, v in raw.items():
+            self[k] = v  # <- goes through __setitem__, runs validation
+
+    def update(self, *args, **kwargs):
+        for key, value in dict(*args, **kwargs).items():
+            self[key] = value  # will trigger __setitem__
+
+    def __setitem__(self, key, value):
+        """update dict item to do validation on set"""
+        value = self._validate_entry(key, value)
+        super().__setitem__(key, value)
+
+    @staticmethod
+    @abstractmethod
+    def _validate_entry(name, value):
+        ...
+
+
+class VariableDict(ValidatedDict):
+    @staticmethod
+    def _validate_entry(name, val):
+        if isinstance(val, BaseVariable):
+            return val
+        elif isinstance(val, list):
+            if len(val) != 2:
+                raise ValueError(
+                    f"variable {name} is not correctly specified, must have two elements representing upper and lower bounds."
+                )
+            return ContinuousVariable(domain=val)
+        elif isinstance(val, set):
+            return DiscreteVariable(values=val)
+        elif isinstance(val, dict):
+            if "type" not in val:
+                raise ValueError(f"variable {name} must provide type field")
+            variable_type = val.pop("type")
+            try:
+                class_ = globals()[variable_type]
+            except KeyError:
+                raise ValueError(f"variable type {variable_type} is not available")
+            return class_(**val)
+        else:
+            raise ValueError(
+                f"variable {name}: input type {type(val)} not supported. "
+                "Must be a BaseVariable, list[2], set, or dict with type field."
+            )
 
 
 class BaseConstraint(BaseField):
@@ -83,31 +134,42 @@ CONSTRAINT_CLASSES = {
 }
 
 
-class ConstraintTypeEnum(str, Enum):
-    LESS_THAN = "LESS_THAN"
-    GREATER_THAN = "GREATER_THAN"
-    BOUNDS = "BOUNDS"
+class ConstraintDict(ValidatedDict):
+    @staticmethod
+    def _validate_entry(name, val):
+        if isinstance(val, BaseConstraint):
+            return val
+        elif isinstance(val, dict):
+            if "type" not in val:
+                raise ValueError(f"constraint {name} must provide type field")
+            constraint_type = val.pop("type")
+            try:
+                class_ = globals()[constraint_type]
+            except KeyError:
+                raise ValueError(f"constraint type {constraint_type} is not available")
+            return class_(**val)
+        elif isinstance(val, list):
+            if not isinstance(val[0], str):
+                raise ValueError(
+                    f"constraint type {val[0]} must be a string if specified by a list"
+                )
 
-    # Allow any case
-    @classmethod
-    def _missing_(cls, name):
-        if isinstance(name, str):
-            for member in cls:
-                if member.name.lower() == name.lower():
-                    return member
+            constraint_type = val[0].upper()
+            if constraint_type not in CONSTRAINT_CLASSES:
+                raise ValueError(
+                    f"Constraint type '{constraint_type}' is not supported for '{name}'."
+                )
 
+            # Dynamically create the constraint instance
+            if constraint_type == "BOUNDS":
+                return CONSTRAINT_CLASSES[constraint_type](range=val[1:])
+            else:
+                if len(val) < 2:
+                    raise ValueError(f"constraint {val} is not correctly specified")
+                return CONSTRAINT_CLASSES[constraint_type](value=val[1])
 
-class ObjectiveTypeEnum(str, Enum):
-    MINIMIZE = "MINIMIZE"
-    MAXIMIZE = "MAXIMIZE"
-    EXPLORE = "EXPLORE"
-
-    # Allow any case
-    @classmethod
-    def _missing_(cls, name):
-        for member in cls:
-            if member.name.lower() == name.lower():
-                return member
+        else:
+            raise ValueError(f"constraint input type {type(val)} not supported")
 
 
 class BaseObjective(BaseField):
@@ -133,15 +195,88 @@ OBJECTIVE_CLASSES = {
 }
 
 
+class ObjectiveDict(ValidatedDict):
+    @staticmethod
+    def _validate_entry(name, val):
+        if isinstance(val, BaseObjective):
+            return val
+        elif isinstance(val, dict):
+            if "type" not in val:
+                raise ValueError(f"objective {name} is not correctly specified")
+            objective_type = val.pop("type")
+            try:
+                class_ = globals()[objective_type]
+                if not issubclass(class_, BaseObjective):
+                    raise ValueError(
+                        f"objective type {objective_type} is not a valid objective"
+                    )
+            except KeyError:
+                raise ValueError(f"objective type {objective_type} is not available")
+            return class_(**val)
+        elif isinstance(val, str):
+            try:
+                return OBJECTIVE_CLASSES[val.upper()]()
+            except KeyError:
+                raise ValueError(
+                    f"Objective type '{val}' is not supported for '{name}'."
+                )
+        else:
+            raise ValueError(f"objective input type {type(val)} not supported")
+
+
 class Constant(BaseField):
     value: Any
+
+
+class ConstantDict(ValidatedDict):
+    @staticmethod
+    def _validate_entry(name, val):
+        if isinstance(val, Constant):
+            return val
+        elif isinstance(val, dict):
+            if "type" not in val:
+                raise ValueError(f"constant {name} is not correctly specified")
+            constant_type = val.pop("type")
+
+            # we only have one constant type for now
+            if constant_type != "Constant":
+                raise ValueError(
+                    f"constant type {constant_type} is not a valid constant"
+                )
+
+            return Constant(**val)
+        else:
+            return Constant(value=val)
 
 
 class Observable(BaseField):
     pass
 
 
-class VOCS(BaseModel):
+class ObservableDict(ValidatedDict):
+    @staticmethod
+    def _validate_entry(name, val):
+        if isinstance(val, Observable):
+            return val
+        elif isinstance(val, dict):
+            if "type" not in val:
+                raise ValueError(f"observable {name} is not correctly specified")
+            observable_type = val.pop("type")
+
+            # we only have one observable type for now
+            if observable_type != "Observable":
+                raise ValueError(
+                    f"observable type {observable_type} is not a valid observable"
+                )
+
+            return Observable(**val)
+        elif isinstance(val, str):
+            return Observable(dtype=val)
+        else:
+            raise ValueError(f"observable input type {type(val)} not supported")
+
+
+class VOCS(BaseModel, validate_assignment=True, arbitrary_types_allowed=True):
     """
 
     Variables, Objectives, Constraints, and other Settings (VOCS) data structure
@@ -249,20 +384,21 @@ class VOCS(BaseModel):
 
     """
 
-    variables: dict[str, BaseVariable]
-    objectives: dict[str, BaseObjective] = Field(
-        default={}, description="objective names with type of objective"
+    variables: VariableDict
+    objectives: ObjectiveDict = Field(
+        default=ObjectiveDict(), description="objective names with type of objective"
     )
-    constraints: dict[str, BaseConstraint] = Field(
-        default={},
+    constraints: ConstraintDict = Field(
+        default=ConstraintDict(),
         description="constraint names with a list of constraint type and value",
     )
-    constants: dict[str, Constant] = Field(
-        default={}, description="constant names and values passed to evaluate function"
+    constants: ConstantDict = Field(
+        default=ConstantDict(),
+        description="constant names and values passed to evaluate function",
     )
-    observables: Union[set[str], dict[str, Observable]] = Field(
-        default=set(),
-        description="observation names tracked alongside objectives and constraints",
+    observables: ObservableDict = Field(
+        default=ObservableDict(),
+        description="observables tracked alongside objectives and constraints",
     )
     model_config = ConfigDict(
         validate_assignment=True, use_enum_values=True, extra="forbid"
@@ -270,147 +406,27 @@ class VOCS(BaseModel):
 
     @field_validator("variables", mode="before")
     def validate_variables(cls, v):
-        assert isinstance(v, dict)
-        for name, val in v.items():
-            if isinstance(val, BaseVariable):
-                v[name] = val
-            elif isinstance(val, list):
-                if len(val) != 2:
-                    raise ValueError(
-                        f"variable {val} is not correctly specified, "
-                        f"must have two elements representing upper and lower bounds."
-                    )
-                v[name] = ContinuousVariable(domain=val)
-            elif isinstance(val, set):
-                v[name] = DiscreteVariable(values=val)
-            elif isinstance(val, dict):
-                variable_type = val.pop("type")
-                try:
-                    class_ = globals()[variable_type]
-                except KeyError:
-                    raise ValueError(
-                        f"variable type {variable_type} is not available"
-                    )
-                v[name] = class_(**val)
-
-            else:
-                raise ValueError(
-                    f"variable input type {type(val)} not supported. "
-                    f"Must be a list of two elements representing upper and lower bounds "
-                    f"*or* a set of possible values to sample."
-                )
-
-        return v
+        return VariableDict(v)
 
     @field_validator("constraints", mode="before")
     def validate_constraints(cls, v):
-        assert isinstance(v, dict)
-        for name, val in v.items():
-            if isinstance(val, BaseConstraint):
-                v[name] = val
-            elif isinstance(val, dict):
-                constraint_type = val.pop("type")
-                try:
-                    class_ = globals()[constraint_type]
-                except KeyError:
-                    raise ValueError(
-                        f"constraint type {constraint_type} is not available"
-                    )
-                v[name] = class_(**val)
-            elif isinstance(val, list):
-                if not isinstance(val[0], str):
-                    raise ValueError(
-                        f"constraint type {val[0]} must be a string if "
-                        f"specified by a list"
-                    )
-
-                constraint_type = val[0].upper()
-                if constraint_type not in CONSTRAINT_CLASSES:
-                    raise ValueError(
-                        f"Constraint type '{constraint_type}' is not supported for '{name}'."
-                    )
-
-                # Dynamically create the constraint instance
-                if constraint_type == "BOUNDS":
-                    v[name] = CONSTRAINT_CLASSES[constraint_type](range=val[1:])
-                else:
-                    if len(val) < 2:
-                        raise ValueError(f"constraint {val} is not correctly specified")
-                    v[name] = CONSTRAINT_CLASSES[constraint_type](value=val[1])
-
-            else:
-                raise ValueError(f"constraint input type {type(val)} not supported")
-
-        return v
+        return ConstraintDict(v)
 
     @field_validator("objectives", mode="before")
     def validate_objectives(cls, v):
-        assert isinstance(v, dict)
-        for name, val in v.items():
-            if isinstance(val, BaseObjective):
-                v[name] = val
-            elif isinstance(val, ObjectiveTypeEnum):
-                v[name] = OBJECTIVE_CLASSES[val.value]()
-            elif isinstance(val, str):
-                key = val.upper()
-                if key in OBJECTIVE_CLASSES:
-                    v[name] = OBJECTIVE_CLASSES[key]()
-                else:
-                    raise ValueError(
-                        f"Objective type '{val}' is not supported for '{name}'."
-                    )
-            elif isinstance(val, dict):
-                if "type" in val:
-                    obj_type = val.pop("type")
-                    try:
-                        class_ = globals()[obj_type]
-                        if not issubclass(class_, BaseObjective):
-                            raise KeyError
-                        v[name] = class_(**val)
-                    except KeyError:
-                        raise ValueError(
-                            f"Objective type '{obj_type}' is not available"
-                        )
-                else:
-                    raise ValueError(f"objective {val} is not correctly specified")
-            else:
-                raise ValueError(f"objective input type {type(val)} not supported")
-        return v
+        return ObjectiveDict(v)
 
     @field_validator("constants", mode="before")
     def validate_constants(cls, v):
-        assert isinstance(v, dict)
-        for name, val in v.items():
-            if isinstance(val, Constant):
-                v[name] = val
-            elif isinstance(val, dict):
-                constant_type = val.pop("type")
-                try:
-                    class_ = globals()[constant_type]
-                except KeyError:
-                    raise ValueError(
-                        f"constant type {constant_type} is not available"
-                    )
-                v[name] = class_(**val)
-            else:
-                v[name] = Constant(value=val)
-        return v
+        return ConstantDict(v)
 
     @field_validator("observables", mode="before")
     def validate_observables(cls, v):
-        if isinstance(v, (set, list)):
-            return set(v) if isinstance(v, list) else v
+        # allow a set/list of names for convenience
+        if isinstance(v, set) or isinstance(v, list):
+            return ObservableDict({name: Observable() for name in v})
         elif isinstance(v, dict):
-            output = {}
-            for name, val in v.items():
-                if isinstance(val, Observable):
-                    output[name] = val
-                elif isinstance(val, dict):
-                    val.pop("type", None)
-                    output[name] = Observable(**val)
-                else:
-                    output[name] = Observable(dtype=val)
-            return output
+            return ObservableDict(v)
         else:
             raise ValueError(f"observables input type {type(v)} not supported")
 
@@ -423,13 +439,10 @@ class VOCS(BaseModel):
 
     @field_serializer("observables")
     def serialize_observables(self, v):
-        if isinstance(v, set):
-            return list(v)
-        else:
-            output = {}
-            for name, val in v.items():
-                output[name] = val.model_dump() | {"type": type(val).__name__}
-            return output
+        output = {}
+        for name, val in v.items():
+            output[name] = val.model_dump() | {"type": type(val).__name__}
+        return output
 
     @property
     def bounds(self) -> list:
@@ -445,13 +458,11 @@ class VOCS(BaseModel):
 
     @property
     def constraint_names(self) -> list[str]:
-        if not self.constraints:
-            return []
         return list(self.constraints.keys())
 
     @property
     def observable_names(self) -> list[str]:
-        return self.observables
+        return list(self.observables.keys())
 
     @property
     def output_names(self) -> list[str]:
